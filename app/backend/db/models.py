@@ -8,7 +8,8 @@ class User(Base):
     __tablename__ = 'users'
 
     user_id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(100), nullable=False, unique=True)
+    telegram_id = Column(Integer, unique=True, index=True, nullable=False)
+    username = Column(String(100), nullable=False)
     avatar_url = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
