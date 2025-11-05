@@ -1,23 +1,17 @@
-import { useEffect } from "react";
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MainPage from "./Components/MainPage";
+import Categories from "./Components/categories";
+import TheoryPage from "./Components/TheoryPage";
 
-function App() {
-  useEffect(() => {
-    const tg = window.Telegram.WebApp;
-    tg.ready(); // Сообщаем Telegram, что интерфейс загружен
-    tg.expand(); // Разворачиваем окно на максимум
-  }, []);
-
-  const handleSendData = () => {
-    const tg = window.Telegram.WebApp;
-    tg.sendData("React WebApp says hello!"); // Отправляем данные обратно боту
-  };
-
+export default function App() {
   return (
-    <div style={{ padding: 20, textAlign: "center" }}>
-      <h2>👋 Привет из React WebApp!</h2>
-      <button onClick={handleSendData}>Отправить данные боту</button>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/theory" element={<TheoryPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
