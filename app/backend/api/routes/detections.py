@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from api.deps import get_db, get_current_user
 from db.models import GestureDetection
-from api.schemas import DetectionsBulkIn
+from app.backend.api.schemas import DetectionsBulkIn
 
 
 router = APIRouter(prefix="/api/v1", tags=["detections"])

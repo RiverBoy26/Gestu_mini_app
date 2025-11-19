@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from api.deps import get_db, get_current_user
 from db.models import PracticeSession
-from api.schemas import SessionStartIn, SessionStartOut, SessionFinishIn
+from app.backend.api.schemas import SessionStartIn, SessionStartOut, SessionFinishIn
 
 
 router = APIRouter(prefix="/api/v1", tags=["sessions"])
