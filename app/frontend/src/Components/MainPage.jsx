@@ -1,43 +1,32 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./../Styles/MainPage.css";
+import logotype from "./../assets/logo.svg"
 
 const MainPage = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // переключение меню
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
+  // переход по кнопке меню
+  const openMenu = () => {
+    navigate("/menu"); 
   };
 
-  // обработчик нажатия на пункт меню
-  const handleMenuItemClick = (path) => {
-    setMenuOpen(false);
-    navigate(path);
+  const openCategories = () => {
+    navigate("/categories"); 
+  };
+
+  const openIRL = () => {
+    navigate("/practice"); 
   };
 
   return (
     <div className="app-container">
       {/* Верхняя панель */}
       <header className="header">
-        <button className="menu-btn" onClick={toggleMenu}>☰</button>
+        <button className="menu-btn" onClick={openMenu}>☰</button>
         <h1 className="logo">GESTU</h1>
-        <div className="logo-icon">🤟</div>
+        <div className="logo-icon"><img src={logotype} alt="logo" /></div>
       </header>
-
-      {/* Выпадающее меню */}
-      {menuOpen && (
-        <div className="dropdown-menu">
-          <ul>
-            <li onClick={() => handleMenuItemClick("/")}>Главная</li>
-            <li onClick={() => handleMenuItemClick("/categories")}>Категории</li>
-            <li onClick={() => handleMenuItemClick("Словарь")}>Словарь</li>
-            <li onClick={() => handleMenuItemClick("Упражнения")}>Упражнения</li>
-            <li onClick={() => handleMenuItemClick("Практика в IRL")}>Практика в IRL</li>
-          </ul>
-        </div>
-      )}
 
       {/* Основной блок уровня */}
       <div className="level-card">
@@ -51,10 +40,11 @@ const MainPage = () => {
       </div>
 
       {/* Кнопка */}
-      <button className="start-btn">Начать обучение</button>
+      <button className="start-btn" onClick={openCategories}>Начать обучение</button>
+      <button className="practice-btn" onClick={openIRL}>Видео-практика</button>
 
       {/* Нижний декоративный блок */}
-      <footer className="footer">🤟🤚🖐✋</footer>
+      <footer className="footer">GESTU</footer>
     </div>
   );
 };
