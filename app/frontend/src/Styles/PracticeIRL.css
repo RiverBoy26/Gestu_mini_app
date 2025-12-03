@@ -1,0 +1,159 @@
+/* Общий фон и центрирование */
+.app-container {
+  font-family: "Arial", sans-serif;
+  background-color: #8087ff;
+  width: 100vw;           /* занимать всю ширину экрана */
+  height: 100vh;          /* занимать всю высоту окна */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Верхняя панель */
+.header {
+  width: 100%;
+  background-color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+}
+
+.menu-btn {
+  font-size: 22px;
+  background: rgb(228, 228, 228);
+  border: none;
+  cursor: pointer;
+  height: auto;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  font-family: "airborne", sans-serif;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+/* Основной блок с видео */
+.camera-card {
+  background-color: #353b77;
+  border-radius: 16px;
+  margin-top: 40px;
+  width: 80%;
+  max-width: 300px;
+  padding: 20px;
+  text-align: center;
+  color: white;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Видео */
+.video-container {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+video {
+  width: 100%;
+  border-radius: 8px;
+  height: auto;
+}
+
+/* Кнопка снимка */
+.capture-btn {
+  margin-top: 40px;
+  background: linear-gradient(145deg, #b14cf0, #ff3fcf);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-family: "Comic Sans MS", cursive;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  transition: 0.2s;
+}
+
+.capture-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Нижний декоративный блок */
+.footer {
+  margin-top: auto;
+  margin-bottom: 10px;
+  font-size: 24px;
+  opacity: 0.7;
+  text-align: center;
+  width: 100%;
+  font-family: "The_Hands_of_Deaf", sans-serif;
+}
+
+@font-face {
+  font-family: "The_Hands_of_Deaf";
+  src: url("../assets/fonts/The_Hands_of_Deaf.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "airborne";
+  src: url("../assets/fonts/airborne.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.record-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.record-btn,
+.stop-btn {
+  border: none;
+  padding: 12px 24px;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 16px;
+  font-family: "Comic Sans MS";
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.record-btn {
+  background: #ff2d55;
+}
+
+.stop-btn {
+  background: #4b4bff;
+}
+
+.recorded-preview {
+  margin-top: 20px;
+  width: 90%;
+  max-width: 350px;
+  text-align: center;
+}
+
+.download-btn {
+  display: inline-block;
+  margin-top: 10px;
+  background: #b14cf0;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 15px;
+}

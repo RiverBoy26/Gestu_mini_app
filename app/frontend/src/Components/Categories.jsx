@@ -1,138 +1,137 @@
-import { useMemo, useState } from "react";
+import React, { useState, useMemo } from "react";
 import "./../Styles/Categories.css";
+import { useNavigate } from "react-router-dom";
+import logotype from "./../assets/logo.svg"
 
-/** Пример данных — можешь заменить на загрузку с API */
-const CATALOG = {
-  Food: [
-    { id: 1, title: "Дикий огурец", learned: true },
-    { id: 2, title: "Дикий латяо", learned: false },
-    { id: 3, title: "Дикий помидор", learned: true },
-    { id: 4, title: "Дикий дуриан", learned: false },
-    { id: 5, title: "Дикий рис", learned: true },
-    { id: 6, title: "Дикий арбуз", learned: false },
-  ],
-  Nature: [
-    { id: 7, title: "Горный ветер", learned: false },
-    { id: 8, title: "Туманный лес", learned: false },
-  ],
-  Travel: [
-    { id: 9, title: "Аэропорт", learned: true },
-    { id: 10, title: "Багаж", learned: false },
-  ],
-};
+const Categories = () => {
+  const navigate = useNavigate();
 
-export default function Categories() {
-  const categories = Object.keys(CATALOG);
-  const [selected, setSelected] = useState(categories[0] ?? "");
-  const [search, setSearch] = useState("");
-  const [list, setList] = useState(CATALOG);
+    // переход по кнопке меню
+    const openMenu = () => {
+      navigate("/menu"); 
+    };
 
-  const items = list[selected] ?? [];
-    const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
+  // Категории
+  const categories = [
+    { id: "alphabet", icon: "A", label: "алфавит" },
+    { id: "animals", icon: "🐱", label: "животные" },
+    { id: "food", icon: "🍟", label: "еда" },
+    { id: "emotions", icon: "😁", label: "эмоции" },
+  ];
+
+  // Упражнения по категориям
+  const exercises = {
+    alphabet: [
+      { id: 1, available: false },
+      { id: 2, available: false },
+      { id: 3, available: true },
+      { id: 4, available: true },
+      { id: 5, available: true }
+    ],
+    animals: [
+      { id: 1, available: false },
+      { id: 2, available: false },
+      { id: 3, available: true },
+      { id: 4, available: true }
+    ],
+    food: [
+      { id: 1, available: false },
+      { id: 2, available: false },
+      { id: 3, available: true }
+    ],
+    emotions: [
+      { id: 1, available: true },
+      { id: 2, available: true }
+    ]
   };
 
-  const handleMenuItemClick = (path) => {
-    setMenuOpen(false);
-    navigate(path);
+  const [activeCategory, setActiveCategory] = useState("alphabet");
+
+  const openExercise = (exerciseId, available) => {
+    if (!available) return; // заблокированные не кликаются
+    navigate(`/exercise/${exerciseId}`);
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return !q ? items : items.filter(i => i.title.toLowerCase().includes(q));
-  }, [items, search]);
+  const nodePositions = useMemo(() => {
+  return exercises[activeCategory].map((_, index) => ({
+    x: index % 2 === 0 ? 45 : 165,   // центр кружка
+    y: index * 80 + 30
+   }));
+  }, [activeCategory]);
 
-  const learnedCount = items.filter(i => i.learned).length;
-  const totalCount = items.length || 1; // чтобы не делить на 0
-  const progress = Math.round((learnedCount / totalCount) * 100);
+function catmullRom2bezier(points) {
+  if (points.length < 2) return "";
 
-  const toggleLearned = (id) => {
-    setList(prev => ({
-      ...prev,
-      [selected]: prev[selected].map(i =>
-        i.id === id ? { ...i, learned: !i.learned } : i
-      ),
-    }));
-  };
+  let path = `M ${points[0].x},${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+
+    path += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
+  }
+
+  return path;
+}
+
+const linePath = useMemo(() => {
+  return catmullRom2bezier(nodePositions);
+}, [nodePositions]);
 
   return (
-    <div className="categories-screen">
-      {/* верхняя панель в стиле проекта */}
+    <div className="categories-container">
+
+      {/* Верхняя панель */}
       <header className="header">
-        <button className="menu-btn" onClick={toggleMenu}>☰</button>
+        <button className="menu-btn" onClick={openMenu}>☰</button>
         <h1 className="logo">GESTU</h1>
-        <div className="logo-icon">🤟</div>
+        <div className="logo-icon"><img src={logotype} alt="logo" /></div>
       </header>
-        {/* Выпадающее меню */}
+
+      {/* Категории */}
+      <div className="scroll-area">
+      <div className="categories-box">
+        {categories.map(cat => (
+          <div
+            key={cat.id}
+            className={`category-item ${activeCategory === cat.id ? "active" : ""}`}
+            onClick={() => setActiveCategory(cat.id)}
+          >
+            <span className="category-icon">{cat.icon}</span>
+            <span className="category-label">{cat.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Линия + узлы */}
+      <div className="roadmap">
+        <svg className="roadmap-line" width="220" height="420">
+          <path d={linePath} stroke="white" strokeWidth="6" fill="none" />
+        </svg>
+
+        {exercises[activeCategory].map((ex, index) => (
+          <div
+            key={ex.id}
+            className={`node ${ex.available ? "green" : "gray"}`}
+            style={{ top: index * 80 + "px", left: index % 2 === 0 ? "20px" : "140px" }}
+            onClick={() => openExercise(ex.id, ex.available)}
+          ></div>
+        ))}
+      </div>
       
-      <main className="categories-container">
-        {/* карточка выбора и поиска */}
-        <section className="picker-card">
-          <p className="picker-title">
-            Выберите категорию, чтобы просмотреть изученные слова
-          </p>
-
-          <div className="picker-row">
-            <select
-              className="picker-select"
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              {categories.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-
-            <button
-              className="picker-choose"
-              onClick={() => setSearch("")}
-              title="Очистить поиск"
-            >
-              Выбрать
-            </button>
-          </div>
-
-          {/* прогресс */}
-          <div className="progress-line">
-            <div className="progress-fill" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="progress-caption">
-            Слов изучено: {learnedCount} из {totalCount}
-          </div>
-
-          {/* поиск */}
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Поиск по списку…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </section>
-
-        {/* список элементов */}
-        <section className="list-wrap">
-          <ul className="item-list">
-            {filtered.map(item => (
-              <li key={item.id} className="item-row">
-                <span className="item-title">{item.title}</span>
-
-                {/* круг с звездой (метка) */}
-                <button
-                  className={`star-badge ${item.learned ? "is-active" : ""}`}
-                  onClick={() => toggleLearned(item.id)}
-                  aria-pressed={item.learned}
-                  aria-label={item.learned ? "Пометить как не изучено" : "Пометить как изучено"}
-                >
-                  ★
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </main>
-
-      <footer className="footer">🤟🤚🖐✋</footer>
+      {/* Низ */}
+      <footer className="footer">GESTU</footer>
+    </div>
     </div>
   );
-}
+};
+
+export default Categories;
