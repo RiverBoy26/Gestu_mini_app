@@ -15,8 +15,11 @@ const PracticeIRL = () => {
   };
 
   useEffect(() => {
+    console.log("hasCamera:", hasCamera);
     // Функция для запроса доступа к камере
     const startCamera = async () => {
+      console.log("stream:", stream);
+      console.log("videoRef:", videoRef.current);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true, // только видео
