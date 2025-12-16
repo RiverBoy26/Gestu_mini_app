@@ -24,6 +24,9 @@ const PracticeIRL = () => {
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream; // назначаем поток на видео
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+          };
         }
         streamRef.current = stream; // сохраняем поток для будущего использования
         setHasCamera(true); // если камера доступна, меняем состояние
