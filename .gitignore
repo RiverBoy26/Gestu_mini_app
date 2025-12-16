@@ -18,3 +18,5 @@ dist/
 
 .idea/
 .vscode/
+
+app/backend/ml/assets/gesture/mvit32-2.onnx
