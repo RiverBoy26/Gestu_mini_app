@@ -61,6 +61,7 @@ const PracticeIRL = () => {
               ref={videoRef}
               autoPlay
               playsInline
+              muted
               style={{ width: "100%", height: "auto", borderRadius: "8px" }}
             />
           ) : (
