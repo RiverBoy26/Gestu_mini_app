@@ -1,0 +1,147 @@
+.categories-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #8087ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "Arial", sans-serif;
+  overflow-x: hidden;
+}
+
+/* ───────────── Верхняя панель ───────────── */
+.header {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.menu-btn { font-size: 24px; background: none; border: 0; }
+.logo { font-weight: 800; letter-spacing: 2px; font-family: "airborne", sans-serif;}
+.logo-icon { font-size: 22px; }
+
+
+.scroll-area {
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;  
+}
+
+.menu-btn {
+  font-size: 22px;
+  background: rgb(228,228,228);
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+/* ───────────── Блок категорий ───────────── */
+
+.categories-box {
+  margin-top: 20px;
+  background: #ff38cf;
+  padding: 10px;
+  border-radius: 20px;
+  display: flex;
+  gap: 15px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.category-item {
+  background: #e8f757;
+  width: 65px;
+  height: 65px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.category-icon {
+  font-size: 24px;
+}
+
+.category-label {
+  font-size: 10px;
+  font-weight: bold;
+  margin-top: 3px;
+}
+
+.category-item.active {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255,255,255,0.8);
+}
+
+/* ───────────── Дорожка узлов ───────────── */
+
+.roadmap {
+  width: 200px;
+  height: 400px;
+  position: relative;
+  margin-top: 20px;
+}
+
+.node {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  position: absolute;
+  cursor: pointer;
+  border: 3px solid rgba(0,0,0,0.2);
+}
+
+.node.green {
+  background: #65e66d;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+
+.node.gray {
+  background: #cfcfcf;
+  cursor: default;
+}
+
+/* ───────────── Низ ───────────── */
+
+.footer {
+  margin-top: auto;
+  margin-bottom: 12px;
+  font-size: 24px;
+  opacity: 0.7;
+  font-family: "The_Hands_of_Deaf", sans-serif;
+}
+
+@font-face {
+  font-family: "The_Hands_of_Deaf";
+  src: url("../assets/fonts/The_Hands_of_Deaf.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "airborne";
+  src: url("../assets/fonts/airborne.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
