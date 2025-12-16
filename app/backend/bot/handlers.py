@@ -3,7 +3,7 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, W
 import db.requests as rq
 
 
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://gestu.ru")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://4jlcf86z-5173.euw.devtunnels.ms/")
 
 
 async def start(message: Message):

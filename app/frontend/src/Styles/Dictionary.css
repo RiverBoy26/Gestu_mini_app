@@ -1,0 +1,212 @@
+/* базовый фон и сетка как в MainPage */
+.dictionary-screen {
+  background: #8087ff;
+  height: 100dvh;             /* правильная высота в Telegram */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;           /* запрещаем фоновый скролл */
+}
+
+/* переиспользуем шапку из проекта */
+.header {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.menu-btn { font-size: 24px; background: none; border: 0; }
+.logo { font-weight: 800; letter-spacing: 2px; font-family: "airborne", sans-serif;}
+.logo-icon { font-size: 22px; }
+
+.dictionary-container {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* верхняя «карточка» с выбором */
+.picker-card {
+  background: #eef0ff;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.15);
+  box-sizing: border-box;
+  overflow: hidden;  
+}
+.picker-title {
+  margin: 0 0 8px;
+  font-style: italic;
+}
+
+.picker-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.picker-select {
+  appearance: none;
+  border: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.picker-choose {
+  border: 0;
+  border-radius: 16px;
+  padding: 10px 14px;
+  color: #fff;
+  background: linear-gradient(145deg, #b14cf0, #ff3fcf);
+  font-weight: 600;
+}
+
+/* прогресс */
+.progress-line {
+  height: 10px;
+  width: auto;
+  border-radius: 999px;
+  background: #cfcfe6;
+  margin: 6px 0;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #bb53f2, #7e5bef);
+  border-radius: inherit;
+}
+.progress-caption {
+  font-size: 12px;
+  opacity: .8;
+  margin-bottom: 8px;
+}
+
+/* поиск */
+.search-input {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* список */
+.list-wrap {
+  overflow: hidden;
+  border-radius: 16px;
+  padding-right: 2px; /* чтобы кастомный скролл не прилипал */
+}
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 60%;
+  overflow-y: auto;
+}
+
+/* полоса прокрутки (тонкая, как на макете) */
+.item-list::-webkit-scrollbar { width: 6px; }
+.item-list::-webkit-scrollbar-track { background: rgba(0,0,0,.1); border-radius: 99px; }
+.item-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,.35); border-radius: 99px; }
+
+.item-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  background: #d3d5e6;
+  margin: 10px 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.15);
+}
+.item-title {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* круг со звездой */
+.star-badge {
+  width: auto;
+  border-radius: 50%;
+  border: 0;
+  background: #c9ced8;
+  display: flex;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.star-badge:active { transform: scale(.96); }
+.star-badge.is-active {
+  background: #ffca53; /* золото */
+  text-shadow: 0 1px 0 rgba(0,0,0,.15);
+}
+
+.footer {
+  margin: 8px auto 12px;
+  font-size: 22px;
+  opacity: .75;
+  font-family: "The_Hands_of_Deaf", sans-serif;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 55px;
+  left: 10px;
+  width: 200px;
+  background-color: #f7f7f7;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 9;
+  animation: fadeIn 0.3s ease;
+}
+
+.dropdown-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+}
+
+.dropdown-menu li {
+  background-color: #e3e3e3;
+  margin: 6px 0;
+  padding: 10px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #222;
+  transition: 0.2s;
+}
+
+.dropdown-menu li:hover {
+  background-color: #d0d0d0;
+}
+
+@font-face {
+  font-family: "The_Hands_of_Deaf";
+  src: url("../assets/fonts/The_Hands_of_Deaf.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "airborne";
+  src: url("../assets/fonts/airborne.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
