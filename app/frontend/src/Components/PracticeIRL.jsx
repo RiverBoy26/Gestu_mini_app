@@ -15,27 +15,42 @@ const PracticeIRL = () => {
   };
 
   useEffect(() => {
-    console.log("hasCamera:", hasCamera);
-    // Функция для запроса доступа к камере
     const startCamera = async () => {
-      console.log("stream:", stream);
-      console.log("videoRef:", videoRef.current);
+      console.log("mediaDevices:", navigator.mediaDevices);
+      console.log(
+        "getUserMedia:",
+        navigator.mediaDevices?.getUserMedia
+      );
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true, // только видео
+          video: { facingMode: "user" },
         });
-        
+
+        console.log("STREAM OK:", stream);
+        console.log("VIDEO TRACKS:", stream.getVideoTracks());
+
         if (videoRef.current) {
-          videoRef.current.srcObject = stream; // назначаем поток на видео
+          videoRef.current.srcObject = stream;
+
           videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
+            videoRef.current
+              .play()
+              .then(() => console.log("VIDEO PLAYING"))
+              .catch(e => console.error("PLAY ERROR", e));
           };
         }
-        streamRef.current = stream; // сохраняем поток для будущего использования
-        setHasCamera(true); // если камера доступна, меняем состояние
+
+        streamRef.current = stream;
+        setHasCamera(true);
       } catch (error) {
-        console.error("Ошибка доступа к камере", error);
-        setHasCamera(false); // если камера недоступна, меняем состояние
+        console.error(
+          "CAMERA ERROR:",
+          error.name,
+          error.message,
+          error
+        );
+        setHasCamera(false);
       }
     };
 
