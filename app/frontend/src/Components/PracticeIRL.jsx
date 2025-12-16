@@ -107,6 +107,7 @@ const PracticeIRL = () => {
               height: "300px",
               background: "black",
               borderRadius: "8px",
+              transform: "scaleX(-1)",
             }}
           />
 
