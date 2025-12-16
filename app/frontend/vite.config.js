@@ -8,5 +8,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'https://gestu.ru'
+      'gestu.ru'
+    ]
+  }
 })
