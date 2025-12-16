@@ -5,13 +5,14 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from bot.handlers import start
+from db import engine, Base
 
 
 async def main():
     load_dotenv()
+    Base.metadata.create_all(engine)
     bot = Bot(token=os.getenv('TOKEN'))
     dp = Dispatcher()
-    # dp.include_router(router)
     dp.message.register(start, CommandStart())
     await dp.start_polling(bot)
 
