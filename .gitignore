@@ -19,4 +19,4 @@ dist/
 .idea/
 .vscode/
 
-app/backend/ml/assets/gesture/model.onnx
+*.onnx
