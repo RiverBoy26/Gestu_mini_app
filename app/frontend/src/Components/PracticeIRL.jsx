@@ -267,7 +267,10 @@ const PracticeIRL = () => {
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-      if (time - lastSent < 120) return;
+      const SEND_INTERVAL_MS = 40; // Примерно 25 fps
+      if (time - lastSent < SEND_INTERVAL_MS) return;
+
+      if (ws.bufferedAmount > 1_000_000) return;
       if (video.readyState < 2) return;
 
       lastSent = time;
