@@ -116,7 +116,7 @@ const PracticeIRL = () => {
       if (activeSeqRef.current !== seq) return;
 
       connectingRef.current = false;
-      console.log("WS closed", e.code, e.reason);
+      console.log("WS closed", { code: e.code, reason: e.reason, wasClean: e.wasClean });
 
       wsRef.current = null;
 
@@ -126,6 +126,7 @@ const PracticeIRL = () => {
         ...d,
         lastCloseCode: e.code,
         lastCloseReason: e.reason,
+        lastCloseWasClean: e.wasClean,
         lastCloseAt: Date.now(),
       }));
 
