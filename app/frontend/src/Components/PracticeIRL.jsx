@@ -22,7 +22,9 @@ const PracticeIRL = () => {
   const shouldReconnectRef = useRef(true);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptRef = useRef(0);
-  const closingWsRef = useRef(null);
+
+  const wsSeqRef = useRef(0);
+  const activeSeqRef = useRef(0);
 
   const navigate = useNavigate();
   const openMenu = () => navigate("/menu");
@@ -43,7 +45,6 @@ const PracticeIRL = () => {
     cleanupReconnectTimer();
     const ws = wsRef.current;
     if (ws) {
-      closingWsRef.current = ws;
       try {
         ws.close(code, reason);
       } catch {}
@@ -66,11 +67,14 @@ const PracticeIRL = () => {
     }
 
     if (existing) {
-      closingWsRef.current = existing;
       try {
         existing.close(1000, "reconnect");
       } catch {}
+      wsRef.current = null;
     }
+
+    const seq = ++wsSeqRef.current;
+    activeSeqRef.current = seq;
 
     const url = getWsUrl();
     setWsStatus("connecting");
@@ -81,7 +85,7 @@ const PracticeIRL = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      if (wsRef.current !== ws) return;
+      if (activeSeqRef.current !== seq) return;
       console.log("WS connected");
       reconnectAttemptRef.current = 0;
       setWsStatus("connected");
@@ -89,6 +93,7 @@ const PracticeIRL = () => {
     };
 
     ws.onmessage = (event) => {
+      if (activeSeqRef.current !== seq) return;
       try {
         const data = JSON.parse(event.data);
 
@@ -100,18 +105,13 @@ const PracticeIRL = () => {
     };
 
     ws.onerror = (e) => {
-      if (wsRef.current !== ws) return;
+      if (activeSeqRef.current !== seq) return;
       console.log("WS error", e);
       setWsDebug((d) => ({ ...d, lastErrorAt: Date.now() }));
     };
 
     ws.onclose = (e) => {
-      if (e.target === closingWsRef.current) {
-        closingWsRef.current = null;
-        return;
-      }
-
-      if (wsRef.current !== ws) return;
+      if (activeSeqRef.current !== seq) return;
 
       console.log("WS closed", e.code, e.reason);
 
@@ -140,15 +140,16 @@ const PracticeIRL = () => {
         connectWs(false);
       }, delay);
     };
-  }, []);
+  }, [closeWs]);
 
   const reconnectNow = useCallback(() => {
+    if (wsStatus === "connecting") return;
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
     setWsStatus("connecting");
     setWsStatusText("Пытаемся установить соединение...");
     connectWs(true);
-  }, [connectWs]);
+  }, [connectWs, wsStatus]);
 
   useEffect(() => {
     let cancelled = false;
@@ -324,12 +325,14 @@ const PracticeIRL = () => {
 
           <button
             onClick={reconnectNow}
+            disabled={wsStatus === "connecting"}
             style={{
               padding: "6px 10px",
               borderRadius: "8px",
               border: "1px solid rgba(255,255,255,0.15)",
               background: "rgba(255,255,255,0.06)",
-              cursor: "pointer",
+              cursor: wsStatus === "connecting" ? "not-allowed" : "pointer",
+              opacity: wsStatus === "connecting" ? 0.6 : 1,
               color: "inherit",
               fontSize: "14px",
             }}
