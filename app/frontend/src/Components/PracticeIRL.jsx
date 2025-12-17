@@ -247,7 +247,7 @@ const PracticeIRL = () => {
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-      if (time - lastSent < 100) return;
+      if (time - lastSent < 120) return;
       if (video.readyState < 2) return;
 
       lastSent = time;
