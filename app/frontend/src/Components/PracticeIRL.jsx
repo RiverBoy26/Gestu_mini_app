@@ -17,12 +17,12 @@ const PracticeIRL = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
-  const manualCloseRef = useRef(false);
 
   const wsRef = useRef(null);
   const shouldReconnectRef = useRef(true);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptRef = useRef(0);
+  const closingWsRef = useRef(null);
 
   const navigate = useNavigate();
   const openMenu = () => navigate("/menu");
@@ -41,32 +41,36 @@ const PracticeIRL = () => {
 
   const closeWs = useCallback((code = 1000, reason = "client_close") => {
     cleanupReconnectTimer();
-    manualCloseRef.current = true;
-    if (wsRef.current) {
+    const ws = wsRef.current;
+    if (ws) {
+      closingWsRef.current = ws;
       try {
-        wsRef.current.close(code, reason);
+        ws.close(code, reason);
       } catch {}
       wsRef.current = null;
     }
   }, []);
 
-  const scheduleReconnect = useCallback(() => {
-    if (!shouldReconnectRef.current) return;
+  const connectWs = useCallback((force = false) => {
     if (document.visibilityState === "hidden") return;
 
     cleanupReconnectTimer();
 
-    const attempt = Math.min(reconnectAttemptRef.current, 5);
-    const delay = Math.min(500 * Math.pow(2, attempt), 10000);
+    const existing = wsRef.current;
+    if (
+      existing &&
+      !force &&
+      (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
 
-    reconnectTimerRef.current = setTimeout(() => {
-      reconnectAttemptRef.current += 1;
-      connectWs();
-    }, delay);
-  }, []);
-
-  const connectWs = useCallback(() => {
-    closeWs(1000, "reconnect");
+    if (existing) {
+      closingWsRef.current = existing;
+      try {
+        existing.close(1000, "reconnect");
+      } catch {}
+    }
 
     const url = getWsUrl();
     setWsStatus("connecting");
@@ -77,6 +81,7 @@ const PracticeIRL = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
+      if (wsRef.current !== ws) return;
       console.log("WS connected");
       reconnectAttemptRef.current = 0;
       setWsStatus("connected");
@@ -95,12 +100,23 @@ const PracticeIRL = () => {
     };
 
     ws.onerror = (e) => {
+      if (wsRef.current !== ws) return;
       console.log("WS error", e);
       setWsDebug((d) => ({ ...d, lastErrorAt: Date.now() }));
     };
 
     ws.onclose = (e) => {
+      if (e.target === closingWsRef.current) {
+        closingWsRef.current = null;
+        return;
+      }
+
+      if (wsRef.current !== ws) return;
+
       console.log("WS closed", e.code, e.reason);
+
+      wsRef.current = null;
+
       setWsStatus("disconnected");
       setWsStatusText("Нет соединения");
       setWsDebug((d) => ({
@@ -110,28 +126,28 @@ const PracticeIRL = () => {
         lastCloseAt: Date.now(),
       }));
 
-      if (manualCloseRef.current) {
-        manualCloseRef.current = false;
-        return;
-      }
+      if (!shouldReconnectRef.current) return;
+      if (document.visibilityState === "hidden") return;
 
-      if (shouldReconnectRef.current) {
-        setWsStatus("connecting");
-        setWsStatusText("Пытаемся установить соединение...");
-        scheduleReconnect();
-      }
+      const attempt = Math.min(reconnectAttemptRef.current, 5);
+      const delay = Math.min(500 * Math.pow(2, attempt), 10000);
+
+      setWsStatus("connecting");
+      setWsStatusText("Пытаемся установить соединение...");
+
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectAttemptRef.current += 1;
+        connectWs(false);
+      }, delay);
     };
-  }, [closeWs, scheduleReconnect]);
+  }, []);
 
   const reconnectNow = useCallback(() => {
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
-    manualCloseRef.current = false;
-
     setWsStatus("connecting");
     setWsStatusText("Пытаемся установить соединение...");
-    
-    connectWs();
+    connectWs(true);
   }, [connectWs]);
 
   useEffect(() => {
@@ -190,7 +206,7 @@ const PracticeIRL = () => {
 
   useEffect(() => {
     shouldReconnectRef.current = true;
-    connectWs();
+    connectWs(false);
 
     const onVis = () => {
       if (document.visibilityState === "hidden") {
