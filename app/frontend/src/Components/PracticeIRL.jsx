@@ -77,7 +77,7 @@ const PracticeIRL = () => {
   }, [hasCamera]);
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8000/ws/gesture");
+    const ws = new WebSocket("wss://gestu.ru/ws/gesture");
     wsRef.current = ws;
 
     ws.onopen = () => {
