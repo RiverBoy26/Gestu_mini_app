@@ -135,8 +135,8 @@ const PracticeIRL = () => {
       if (!shouldReconnectRef.current) return;
       if (document.visibilityState === "hidden") return;
 
-      if (manualReconnectRef.current) {
-        manualReconnectRef.current = false;
+      if (pendingReconnectRef.current) {
+        pendingReconnectRef.current = false;
         reconnectAttemptRef.current = 0;
         connectWs(false);
         return;
