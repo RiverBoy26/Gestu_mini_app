@@ -24,6 +24,8 @@ const PracticeIRL = () => {
   const shouldReconnectRef = useRef(true);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptRef = useRef(0);
+  
+  const pendingReconnectRef = useRef(false);
 
   const wsSeqRef = useRef(0);
   const activeSeqRef = useRef(0);
@@ -133,6 +135,13 @@ const PracticeIRL = () => {
       if (!shouldReconnectRef.current) return;
       if (document.visibilityState === "hidden") return;
 
+      if (manualReconnectRef.current) {
+        manualReconnectRef.current = false;
+        reconnectAttemptRef.current = 0;
+        connectWs(false);
+        return;
+      }
+
       const attempt = Math.min(reconnectAttemptRef.current, 5);
       const delay = Math.min(500 * Math.pow(2, attempt), 10000);
 
@@ -147,11 +156,19 @@ const PracticeIRL = () => {
   }, [closeWs]);
 
   const reconnectNow = useCallback(() => {
+    const ws = wsRef.current;
+
+    pendingReconnectRef.current = true;
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
-    closeWs(1000, "manual_reconnect");
+
+    if (ws && ws.readyState !== WebSocket.CLOSED) {
+      ws.close(1000, "manual_reconnect");
+      return;
+    }
+
     connectWs(true);
-  }, [closeWs, connectWs]);
+  }, [connectWs]);
 
   useEffect(() => {
     let cancelled = false;
