@@ -56,37 +56,33 @@ const PracticeIRL = () => {
 
   const connectWs = useCallback((force = false) => {
     if (document.visibilityState === "hidden") return;
-    if (connectingRef.current) return;
 
     cleanupReconnectTimer();
 
     const existing = wsRef.current;
-    if (
-      existing &&
-      !force &&
-      (existing.readyState === WebSocket.OPEN ||
-      existing.readyState === WebSocket.CONNECTING)
-    ) {
+
+    if (!force && existing &&
+        (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
       return;
     }
 
-    connectingRef.current = true;
-
-    if (existing && existing.readyState === WebSocket.OPEN) {
+    if (existing && existing.readyState !== WebSocket.CLOSED) {
       try {
-        existing.close(1000, "reconnect");
+        existing.onopen = existing.onmessage = existing.onerror = existing.onclose = null;
+      } catch {}
+      try {
+        existing.close(1000, "replaced");
       } catch {}
       wsRef.current = null;
     }
+
+    if (connectingRef.current) return;
+    connectingRef.current = true;
 
     const seq = ++wsSeqRef.current;
     activeSeqRef.current = seq;
 
     const url = getWsUrl();
-    setWsStatus("connecting");
-    setWsStatusText("Пытаемся установить соединение...");
-    setWsDebug((d) => ({ ...d, url }));
-
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -150,13 +146,11 @@ const PracticeIRL = () => {
   }, [closeWs]);
 
   const reconnectNow = useCallback(() => {
-    if (connectingRef.current) return;
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
-    setWsStatus("connecting");
-    setWsStatusText("Пытаемся установить соединение...");
+    closeWs(1000, "manual_reconnect");
     connectWs(true);
-  }, [connectWs]);
+  }, [closeWs, connectWs]);
 
   useEffect(() => {
     let cancelled = false;
