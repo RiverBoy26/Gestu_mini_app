@@ -17,9 +17,12 @@ def decode_frame(data_url: str) -> np.ndarray:
     """
     data:image/jpeg;base64,... -> (3, 224, 224) float32
     """
-    _, encoded = data_url.split(",", 1)
-    img_bytes = base64.b64decode(encoded)
+    try:
+        _, encoded = data_url.split(",", 1)
+    except ValueError:
+        raise ValueError("Invalid data URL")
 
+    img_bytes = base64.b64decode(encoded)
     img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("Failed to decode image")
@@ -38,12 +41,26 @@ async def gesture_ws(ws: WebSocket):
 
     buffer = FrameBuffer(window=32, frame_interval=2)
 
-    infer_every_s = 0.25
+    infer_every_s = 0.30
     last_infer = 0.0
+
+    ping_interval_s = 10.0
+    last_ping = 0.0
 
     try:
         while True:
-            msg = await ws.receive_json()
+            try:
+                msg = await asyncio.wait_for(ws.receive_json(), timeout=ping_interval_s)
+            except asyncio.TimeoutError:
+                now = time.monotonic()
+                if (now - last_ping) >= ping_interval_s:
+                    last_ping = now
+                    try:
+                        await ws.send_json({"type": "ping", "ts": time.time()})
+                    except Exception:
+                        break
+                continue
+
             if msg.get("type") != "frame":
                 continue
 
@@ -55,6 +72,14 @@ async def gesture_ws(ws: WebSocket):
             buffer.add(frame)
 
             now = time.monotonic()
+
+            if (now - last_ping) >= ping_interval_s:
+                last_ping = now
+                try:
+                    await ws.send_json({"type": "ping", "ts": time.time()})
+                except Exception:
+                    break
+
             if not buffer.is_ready:
                 continue
 
@@ -62,12 +87,15 @@ async def gesture_ws(ws: WebSocket):
                 continue
 
             last_infer = now
-
             window = buffer.get_window()
 
             result = await asyncio.to_thread(model.predict, window)
 
-            await ws.send_json(result)
+            try:
+                await ws.send_json(result)
+            except Exception:
+                break
 
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
+        print("WS disconnect", getattr(e, "code", None))
         return
