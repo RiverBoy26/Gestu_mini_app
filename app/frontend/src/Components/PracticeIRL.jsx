@@ -17,6 +17,7 @@ const PracticeIRL = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
+  const manualCloseRef = useRef(false);
 
   const wsRef = useRef(null);
   const shouldReconnectRef = useRef(true);
@@ -40,6 +41,7 @@ const PracticeIRL = () => {
 
   const closeWs = useCallback((code = 1000, reason = "client_close") => {
     cleanupReconnectTimer();
+    manualCloseRef.current = true;
     if (wsRef.current) {
       try {
         wsRef.current.close(code, reason);
@@ -108,6 +110,11 @@ const PracticeIRL = () => {
         lastCloseAt: Date.now(),
       }));
 
+      if (manualCloseRef.current) {
+        manualCloseRef.current = false;
+        return;
+      }
+
       if (shouldReconnectRef.current) {
         setWsStatus("connecting");
         setWsStatusText("Пытаемся установить соединение...");
@@ -119,8 +126,11 @@ const PracticeIRL = () => {
   const reconnectNow = useCallback(() => {
     shouldReconnectRef.current = true;
     reconnectAttemptRef.current = 0;
+    manualCloseRef.current = false;
+
     setWsStatus("connecting");
     setWsStatusText("Пытаемся установить соединение...");
+    
     connectWs();
   }, [connectWs]);
 
