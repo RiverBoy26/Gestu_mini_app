@@ -54,9 +54,10 @@ update==0.0.1
 urllib3==2.5.0
 uvicorn==0.38.0
 yarl==1.20.1
-onnx==1.14.0
-streamlit==1.28.2
-streamlit-webrtc==0.47.1
-einops==0.6.1
-opencv-python
-onnxruntime-openvino==1.16; sys_platform != 'darwin'
+onnx>=1.15.0
+onnxruntime>=1.21.0
+onnxruntime-openvino>=1.21.0; sys_platform != 'darwin'
+opencv-python>=4.10
+einops>=0.7.0
+streamlit>=1.32.0
+streamlit-webrtc>=0.47.6
