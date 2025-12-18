@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from api.deps import get_db, get_current_user
+from ..deps import get_db, get_current_user
 from db.models import Lesson, GestureCard, Category
 from app.backend.api.schemas import LessonOut, GestureCardOut
 
