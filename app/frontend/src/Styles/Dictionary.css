@@ -1,0 +1,263 @@
+/* базовый фон и сетка как в MainPage */
+:root {
+  --header-h: 48px;
+}
+
+.dictionary-screen {
+  width: 100vw;
+  height: calc(var(--vh) * 100);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;           /* запрещаем фоновый скролл */
+}
+
+/* переиспользуем шапку из проекта */
+.header {
+  height: 48px;
+  flex-shrink: 0;
+  background: #fff;
+  z-index: 10;
+  position: sticky;
+}
+
+/* menu-btn — КОПИЯ ИЗ MainPage */
+.menu-btn {
+  font-size: 18px;                  /* 🔑 */
+  background: rgb(228, 228, 228);   /* 🔑 */
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;                /* 🔑 */
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  font-family: "airborne", sans-serif;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+.dictionary-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  padding-top: var(--header-h);
+  overflow: hidden;
+}
+
+/* верхняя «карточка» с выбором */
+.picker-card {
+  background: #eef0ff;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.15);
+  box-sizing: border-box;
+}
+.picker-title {
+  margin: 0 0 8px;
+  font-style: italic;
+}
+
+.picker-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.picker-select {
+  appearance: none;
+  border: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.picker-choose {
+  border: 0;
+  border-radius: 16px;
+  padding: 10px 14px;
+  color: #fff;
+  background: linear-gradient(145deg, #b14cf0, #ff3fcf);
+  font-weight: 600;
+}
+
+/* прогресс */
+.progress-line {
+  height: 10px;
+  width: auto;
+  border-radius: 999px;
+  background: #cfcfe6;
+  margin: 6px 0;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #bb53f2, #7e5bef);
+  border-radius: inherit;
+}
+.progress-caption {
+  font-size: 12px;
+  opacity: .8;
+  margin-bottom: 8px;
+}
+
+/* поиск */
+.search-input {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* список */
+.list-wrap {
+  overflow-y: auto;
+  border-radius: 16px;
+  padding-right: 2px; /* чтобы кастомный скролл не прилипал */
+}
+
+.list-wrap::after {
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    rgba(128, 135, 255, 0) 0%,
+    rgba(128, 135, 255, 0.6) 60%,
+    #8087ff 100%
+  );
+}
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: auto;
+  overflow-y: auto;
+}
+
+/* полоса прокрутки (тонкая, как на макете) */
+.item-list::-webkit-scrollbar { width: 6px; }
+.item-list::-webkit-scrollbar-track { background: rgba(0,0,0,.1); border-radius: 99px; }
+.item-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,.35); border-radius: 99px; }
+
+.item-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  background: #d3d5e6;
+  margin: 10px 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.15);
+}
+.item-title {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* круг со звездой */
+.star-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #818181;
+  display: grid;
+  place-items: center;
+  border: none;
+  cursor: pointer;
+}
+.star-badge:active { transform: scale(.96); }
+.star-badge.is-active {
+  background: #ffca53; /* золото */
+  text-shadow: 0 1px 0 rgba(0,0,0,.15);
+}
+
+.star-badge svg {
+  display: block;
+  fill: #000;
+  transform: translateX(-7px); 
+}
+
+.footer {
+  flex-shrink: 0;
+  margin-top: 12px;
+  width: 100%;
+  text-align: center;
+  font-size: 22px;
+  opacity: .75;
+  font-family: "The_Hands_of_Deaf", sans-serif;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 55px;
+  left: 10px;
+  width: 200px;
+  background-color: #f7f7f7;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 9;
+  animation: fadeIn 0.3s ease;
+}
+
+.dropdown-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+}
+
+.dropdown-menu li {
+  background-color: #e3e3e3;
+  margin: 6px 0;
+  padding: 10px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #222;
+  transition: 0.2s;
+}
+
+.dropdown-menu li:hover {
+  background-color: #d0d0d0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Адаптация под мобильное окно Telegram */
+@media (max-width: 420px) {
+  .level-card {
+    width: 90%;
+  }
+}
+
+@font-face {
+  font-family: "The_Hands_of_Deaf";
+  src: url("../assets/fonts/The_Hands_of_Deaf.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "airborne";
+  src: url("../assets/fonts/airborne.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

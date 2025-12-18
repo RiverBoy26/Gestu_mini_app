@@ -1,0 +1,173 @@
+/* === ОБЩИЙ ЭКРАН === */
+.exercises-screen {
+  background: #8087ff;
+  min-height: calc(var(--vh) * 100);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: "Arial", sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* === HEADER как в MainPage === */
+.header {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.menu-btn {
+  font-size: 20px;
+  background: #e4e4e4;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.logo-icon {
+  font-size: 22px;
+}
+
+/* === КОНТЕНТНЫЙ БЛОК === */
+.exercise-container {
+  font-family: "Arial", sans-serif;
+  background-color: #8087ff;
+  width: 100vw;           /* занимать всю ширину экрана */
+  height: 100vh;          /* занимать всю высоту окна */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+/* === ЗАГОЛОВКИ === */
+.exercise-header {
+  width: 100%;
+  max-width: 330px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+/* фиолетово-серый стиль карточек */
+.exercise-category {
+  background: #353b77;
+  color: #fff;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+  width: 100%;
+  max-width: 330px;
+}
+
+.exercise-category .star {
+  margin-left: 6px;
+  font-size: 18px;
+}
+
+.exercise-topic {
+  background: #4d4d6b;
+  color: #fff;
+  padding: 10px;
+  border-radius: 14px;
+  font-size: 13px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+  width: 100%;
+  max-width: 330px;
+}
+
+/* === ТЕКСТОВАЯ КАРТОЧКА === */
+.exercise-text-box {
+  width: 100%;
+  max-width: 330px;
+  background: #fff;
+  padding: 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+
+  min-height: 160px;
+  max-height: 240px;
+  overflow-y: auto;
+
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 330px;
+}
+
+.exercise-text {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* === КНОПКИ НАВИГАЦИИ === */
+.exercise-nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 330px;
+}
+
+.nav-btn {
+  background: #b8b8d1;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-family: "Comic Sans MS";
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+  transition: 0.15s;
+}
+
+.nav-btn:active {
+  transform: scale(0.95);
+}
+
+/* === КНОПКА "ПЕРЕЙТИ К УПРАЖНЕНИЯМ" === */
+.exercises-start-btn {
+  background: linear-gradient(145deg, #b14cf0, #ff3fcf);
+  color: white;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 18px;
+  font-size: 18px;
+  font-family: "Comic Sans MS";
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.22);
+  transition: 0.15s;
+  width: 100%;
+  max-width: 330px;
+}
+
+.exercises-start-btn:active {
+  transform: scale(0.95);
+}
+
