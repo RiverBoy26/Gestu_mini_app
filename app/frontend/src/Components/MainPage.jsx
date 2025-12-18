@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./../Styles/MainPage.css";
 import logotype from "./../assets/logo.svg"
@@ -18,6 +18,29 @@ const MainPage = () => {
   const openIRL = () => {
     navigate("/practice"); 
   };
+
+  useLayoutEffect(() => {
+    const setVH = () => {
+      const height = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+
+      document.documentElement.style.setProperty(
+        "--vh",
+        `${height * 0.01}px`
+      );
+    };
+
+    setVH();
+
+    window.visualViewport?.addEventListener("resize", setVH);
+    window.addEventListener("orientationchange", setVH);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", setVH);
+      window.removeEventListener("orientationchange", setVH);
+    };
+  }, []);
 
   return (
     <div className="app-container">
