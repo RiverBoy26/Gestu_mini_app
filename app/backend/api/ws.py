@@ -62,8 +62,15 @@ async def gesture_ws(ws: WebSocket):
 
     last_preds = deque(maxlen=3)
 
+    frames_in = 0
+    frames_dropped = 0
+    decode_ok = 0
+    decode_err = 0
+    infer_n = 0
+    last_debug = 0.0
+
     async def receiver():
-        nonlocal alive
+        nonlocal alive, frames_in, frames_dropped
         try:
             while True:
                 msg = await ws.receive_json()
@@ -72,7 +79,9 @@ async def gesture_ws(ws: WebSocket):
                 data = msg.get("data")
                 if not isinstance(data, str):
                     continue
+                frames_in += 1
                 if q.full():
+                    frames_dropped += 1
                     try:
                         q.get_nowait()
                     except Exception:
@@ -103,12 +112,22 @@ async def gesture_ws(ws: WebSocket):
 
             try:
                 frame = await asyncio.to_thread(decode_frame_bgr224, data_url)
+                decode_ok += 1
             except Exception:
+                decode_err += 1
                 continue
 
             frames.append(frame)
 
             now = time.monotonic()
+
+            if DEBUG_WS and (now - last_debug) > 1.0:
+                last_debug = now
+                logger.info(
+                    f"frames_in={frames_in} dropped={frames_dropped} "
+                    f"decode_ok={decode_ok} decode_err={decode_err} "
+                    f"buf={len(frames)}/{WINDOW_SIZE} infer={infer_n}"
+                )
 
             if len(frames) < WINDOW_SIZE:
                 continue
@@ -118,6 +137,8 @@ async def gesture_ws(ws: WebSocket):
             last_infer = now
 
             pred = await asyncio.to_thread(predictor.predict, list(frames))
+            infer_n += 1
+
             if not pred:
                 continue
 
@@ -138,6 +159,9 @@ async def gesture_ws(ws: WebSocket):
 
             last_sent_word = word
             last_sent_at = now
+
+            if DEBUG_WS:
+                logger.info(f"DETECTED word={word} conf={conf:.3f}")
 
             await ws.send_json({"word": word, "confidence": conf})
 
