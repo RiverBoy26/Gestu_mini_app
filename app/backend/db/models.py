@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text, DateTime, func, UniqueConstraint
 from sqlalchemy.orm import relationship
 from . import Base
 
@@ -13,15 +13,34 @@ class User(Base):
     created_at = Column(DateTime(), server_default=func.now())
 
 
+class Category(Base):
+    __tablename__ = 'categories'
+
+    category_id = Column(Integer, primary_key=True, autoincrement=True)
+    slug = Column(String(50), unique=True, index=True, nullable=False)
+    title = Column(String(100), nullable=False)
+    category_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(), server_default=func.now())
+
+    lessons = relationship('Lesson', back_populates='category')
+
+
 class Lesson(Base):
     __tablename__ = 'lessons'
+    __table_args__ = (
+        UniqueConstraint('category_id', 'lesson_order', name='uq_lessons_category_order'),
+    )
 
     lesson_id = Column(Integer, primary_key=True, autoincrement=True)
+    category_id = Column(Integer, ForeignKey('categories.category_id'), index=True, nullable=False)
+
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     content_url = Column(String(255), nullable=True)
     lesson_order = Column(Integer, nullable=False)
     created_at = Column(DateTime(), server_default=func.now())
+
+    category = relationship('Category', back_populates='lessons')
 
 
 class GestureCard(Base):
