@@ -5,55 +5,136 @@ import logotype from "./../assets/logo.svg";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
+const CATEGORIES_RU = {
+  words: "Алфавит",
+  animals: "Животные",
+  numbers: "Числа",
+};
+
+const RUS_ALPHABET = [
+  "А","Б","В","Г","Д","Е","Ё","Ж","З","И","Й","К","Л","М","Н","О","П","Р","С","Т","У","Ф","Х","Ц","Ч","Ш","Щ","Ъ","Ы","Ь","Э","Ю","Я"
+];
+
+const ANIMALS = [
+  { file: "cat", title: "Кошка" },
+  { file: "dog", title: "Собака" },
+  { file: "goat", title: "Коза" },
+  { file: "moose", title: "Лось" },
+  { file: "snake", title: "Змея" },
+  { file: "dolphin", title: "Дельфин" },
+  { file: "donkey", title: "Осёл" },
+  { file: "eagle", title: "Орел" },
+  { file: "fox", title: "Лиса" },
+  { file: "elephant", title: "Слон" },
+];
+
+const joinUrl = (base, path) => {
+  if (!base) return path;
+  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+};
+
+const getInitData = () => window?.Telegram?.WebApp?.initData || "";
 const getAuthHeaders = () => {
-  const initData = window?.Telegram?.WebApp?.initData;
+  const initData = getInitData();
   return initData ? { "X-Telegram-Init-Data": initData } : {};
 };
 
+const PROGRESS_KEY = "gestu_completed_keys";
+
 const readCompleted = () => {
   try {
-    const raw = localStorage.getItem("gestu_completed_lesson_ids");
+    const raw = localStorage.getItem(PROGRESS_KEY);
     const arr = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(arr) ? arr : []);
+    const set = new Set();
+    if (Array.isArray(arr)) arr.forEach((x) => set.add(String(x)));
+    return set;
   } catch {
     return new Set();
   }
 };
 
 const writeCompleted = (set) => {
-  localStorage.setItem("gestu_completed_lesson_ids", JSON.stringify(Array.from(set)));
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(Array.from(set)));
+};
+
+const lessonKey = (slug, lesson) => {
+  if (lesson?.lesson_id != null) return String(lesson.lesson_id);
+  return `${slug}:${lesson?.lesson_order ?? ""}`;
+};
+
+const buildMockLessons = (slug) => {
+  if (slug === "words") {
+    return RUS_ALPHABET.map((letter, i) => ({
+      lesson_id: null,
+      lesson_order: i + 1,
+      title: letter,
+      description: "",
+      content_url: `/videos/words/${letter}.mp4`,
+      __mock: true,
+    }));
+  }
+  if (slug === "numbers") {
+    return Array.from({ length: 10 }).map((_, i) => ({
+      lesson_id: null,
+      lesson_order: i + 1,
+      title: String(i),
+      description: "",
+      content_url: `/videos/numbers/${i}.mp4`,
+      __mock: true,
+    }));
+  }
+  if (slug === "animals") {
+    return ANIMALS.map((a, i) => ({
+      lesson_id: null,
+      lesson_order: i + 1,
+      title: a.title,
+      description: "",
+      content_url: `/videos/animals/${a.file}.mp4`,
+      __mock: true,
+    }));
+  }
+  return [];
 };
 
 const Exercise = () => {
   const navigate = useNavigate();
   const { category, order } = useParams();
 
-  const [categories, setCategories] = useState([]);
-  const [lessons, setLessons] = useState([]);
-  const [completedIds, setCompletedIds] = useState(() => readCompleted());
+  const [lessons, setLessons] = useState(() => buildMockLessons(category));
+  const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
 
   useEffect(() => {
-    (async () => {
-      const res = await fetch(`${API_BASE}/api/v1/categories`, { headers: { ...getAuthHeaders() } });
-      const data = await res.json();
-      setCategories(Array.isArray(data) ? data : []);
-    })().catch(() => {});
-  }, []);
+    setLessons(buildMockLessons(category));
+  }, [category]);
 
   useEffect(() => {
-    if (!category) return;
+    const sync = () => setCompletedKeys(readCompleted());
+    sync();
+  }, [category, order]);
+
+  useEffect(() => {
     (async () => {
-      const res = await fetch(`${API_BASE}/api/v1/categories/${category}/lessons`, {
-        headers: { ...getAuthHeaders() },
-      });
-      const data = await res.json();
-      const sorted = Array.isArray(data)
-        ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
-        : [];
-      setLessons(sorted);
-    })().catch(() => {});
+      const headers = getAuthHeaders();
+      if (!headers["X-Telegram-Init-Data"]) return;
+
+      try {
+        const res = await fetch(joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`), {
+          headers,
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const sorted = Array.isArray(data)
+          ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
+          : [];
+
+        if (sorted.length) setLessons(sorted);
+      } catch (e) {
+        console.log("exercise lessons fetch error", e);
+      }
+    })();
   }, [category]);
 
   const currentOrder = Number(order || 1);
@@ -62,33 +143,39 @@ const Exercise = () => {
     return lessons.find((l) => Number(l.lesson_order) === currentOrder) || null;
   }, [lessons, currentOrder]);
 
-  const categoryTitle = useMemo(() => {
-    return categories.find((c) => c.slug === category)?.title || category;
-  }, [categories, category]);
+  const categoryTitle = CATEGORIES_RU[category] || category;
 
-  const isCompleted = currentLesson ? completedIds.has(currentLesson.lesson_id) : false;
+  const isCompleted = useMemo(() => {
+    if (!currentLesson) return false;
+    return completedKeys.has(lessonKey(category, currentLesson));
+  }, [completedKeys, currentLesson, category]);
 
   const toggleCompleted = () => {
     if (!currentLesson) return;
-    const next = new Set(completedIds);
-    if (next.has(currentLesson.lesson_id)) next.delete(currentLesson.lesson_id);
-    else next.add(currentLesson.lesson_id);
-    setCompletedIds(next);
+    const key = lessonKey(category, currentLesson);
+    const next = new Set(completedKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setCompletedKeys(next);
     writeCompleted(next);
   };
 
-  const prevDisabled = currentOrder <= 1;
-  const nextDisabled = currentOrder >= (lessons[lessons.length - 1]?.lesson_order ?? currentOrder);
-
   const goPrev = () => {
-    if (prevDisabled) return;
-    navigate(`/exercise/${category}/${currentOrder - 1}`);
+    const prev = currentOrder - 1;
+    if (prev < 1) return;
+    navigate(`/exercise/${category}/${prev}`);
   };
 
   const goNext = () => {
-    if (nextDisabled) return;
-    navigate(`/exercise/${category}/${currentOrder + 1}`);
+    const maxOrder = Number(lessons[lessons.length - 1]?.lesson_order || currentOrder);
+    const next = currentOrder + 1;
+    if (next > maxOrder) return;
+    navigate(`/exercise/${category}/${next}`);
   };
+
+  const prevDisabled = currentOrder <= 1;
+  const nextDisabled =
+    currentOrder >= Number(lessons[lessons.length - 1]?.lesson_order || currentOrder);
 
   const togglePlay = () => {
     const v = videoRef.current;
@@ -97,7 +184,7 @@ const Exercise = () => {
     else v.pause();
   };
 
-  if (!currentLesson) return <div>Загрузка...</div>;
+  if (!currentLesson) return <div />;
 
   return (
     <div className="exercises-screen">
@@ -109,18 +196,15 @@ const Exercise = () => {
 
       <div className="exercise-container">
         <div className="exercise-header">
-          <div className="exercise-category">
-            КАТЕГОРИЯ: {categoryTitle}
-          </div>
-          <div className="exercise-topic">
-            ТЕМА: {currentLesson.title}
-          </div>
+          <div className="exercise-category">КАТЕГОРИЯ: {categoryTitle}</div>
+          <div className="exercise-topic">ТЕМА: {currentLesson.title}</div>
         </div>
 
         <button
           className={`lesson-status-btn ${isCompleted ? "done" : ""}`}
           onClick={toggleCompleted}
           aria-label="Статус урока"
+          title={isCompleted ? "Урок пройден" : "Не пройден"}
         >
           {isCompleted ? "✓" : "○"}
         </button>
@@ -135,6 +219,7 @@ const Exercise = () => {
             src={currentLesson.content_url}
             loop
             autoPlay
+            muted
             playsInline
             controls={false}
             preload="auto"
@@ -152,7 +237,7 @@ const Exercise = () => {
 
         <button
           className="exercises-start-btn"
-          onClick={() => navigate(`/practice?lesson_id=${currentLesson.lesson_id}`)}
+          onClick={() => navigate(`/practice?lesson_id=${currentLesson.lesson_id ?? ""}`)}
         >
           Перейти к практике
         </button>
