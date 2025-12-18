@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./../Styles/Dictionary.css";
 import logotype from "./../assets/logo.svg"
@@ -55,6 +55,29 @@ export default function Dictionary() {
       ),
     }));
   };
+
+  useLayoutEffect(() => {
+      const setVH = () => {
+        const height = window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight;
+  
+        document.documentElement.style.setProperty(
+          "--vh",
+          `${height * 0.01}px`
+        );
+      };
+  
+      setVH();
+  
+      window.visualViewport?.addEventListener("resize", setVH);
+      window.addEventListener("orientationchange", setVH);
+  
+      return () => {
+        window.visualViewport?.removeEventListener("resize", setVH);
+        window.removeEventListener("orientationchange", setVH);
+      };
+    }, []);
 
   return (
     <div className="dictionary-screen">
@@ -115,15 +138,18 @@ export default function Dictionary() {
                   onClick={() => toggleLearned(item.id)}
                   aria-pressed={item.learned}
                 >
-                  ★
+                   <svg viewBox="0 0 24 24" width="18" height="18" >
+                      <path d="M12 2l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
+                    </svg>
                 </button>
               </li>
             ))}
           </ul>
         </section>
+        <footer className="footer">GESTU</footer>
       </main>
 
-      <footer className="footer">GESTU</footer>
+      
     </div>
   );
 }

@@ -1,7 +1,7 @@
 /* === ОБЩИЙ ЭКРАН === */
 .exercises-screen {
   background: #8087ff;
-  height: 100dvh;
+  min-height: calc(var(--vh) * 100);
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -171,10 +171,3 @@ html, body {
   transform: scale(0.95);
 }
 
-/* === FOOTER как в других экранах === */
-.footer {
-  margin: 6px auto 12px;
-  font-size: 22px;
-  opacity: 0.7;
-  text-align: center;
-}

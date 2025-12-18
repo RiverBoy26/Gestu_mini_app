@@ -146,7 +146,7 @@ const PracticeIRL = () => {
       const delay = Math.min(500 * Math.pow(2, attempt), 10000);
 
       setWsStatus("connecting");
-      setWsStatusText("Пытаемся установить соединение...");
+      setWsStatusText("Соединяем...");
 
       reconnectTimerRef.current = setTimeout(() => {
         reconnectAttemptRef.current += 1;
@@ -363,12 +363,12 @@ const PracticeIRL = () => {
           </button>
         </div>
 
-        {/* Debug */}
+        {/* Debug
         {wsDebug?.lastCloseCode && (
           <div style={{ marginTop: "6px", fontSize: "12px", opacity: 0.6 }}>
             WS close: {wsDebug.lastCloseCode} {wsDebug.lastCloseReason ? `(${wsDebug.lastCloseReason})` : ""}
           </div>
-        )}
+        )} */}
 
         {/* Result */}
         {gesture && (

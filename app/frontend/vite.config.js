@@ -8,7 +8,8 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'gestu.ru'
+      'gestu.ru',
+      '4jlcf86z-5173.euw.devtunnels.ms/'
     ]
   }
 })

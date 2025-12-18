@@ -17,7 +17,7 @@ img {
   font-family: "Arial", sans-serif;
   background-color: #8087ff;
   width: 100vw;           /* занимать всю ширину экрана */
-  height: 100vh;          /* занимать всю высоту окна */
+ min-height: calc(var(--vh) * 100);          /* занимать всю высоту окна */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -221,10 +221,6 @@ img {
 @media (max-width: 420px) {
   .level-card {
     width: 90%;
-  }
-
-  .start-btn {
-    width: 80%;
   }
 }
 

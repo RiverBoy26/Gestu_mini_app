@@ -15,8 +15,7 @@ const Categories = () => {
   const categories = [
     { id: "alphabet", icon: "A", label: "алфавит" },
     { id: "animals", icon: "🐱", label: "животные" },
-    { id: "food", icon: "🍟", label: "еда" },
-    { id: "emotions", icon: "😁", label: "эмоции" },
+    { id: "numbers", icon: "123", label: "Цифры" },
   ];
 
   // Упражнения по категориям
@@ -34,14 +33,10 @@ const Categories = () => {
       { id: 3, available: true },
       { id: 4, available: true }
     ],
-    food: [
+    numbers: [
       { id: 1, available: false },
       { id: 2, available: false },
       { id: 3, available: true }
-    ],
-    emotions: [
-      { id: 1, available: true },
-      { id: 2, available: true }
     ]
   };
 
