@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..deps import get_db, get_current_user
-from db.models import Category, Lesson
+from app.backend.db.models import Category, Lesson
 from app.backend.api.schemas import CategoryOut, LessonOut
 
 router = APIRouter(prefix="/api/v1", tags=["categories"])

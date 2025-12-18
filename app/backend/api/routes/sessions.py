@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 from ..deps import get_db, get_current_user
-from db.models import PracticeSession
+from app.backend.db.models import PracticeSession
 from app.backend.api.schemas import SessionStartIn, SessionStartOut, SessionFinishIn
 
 

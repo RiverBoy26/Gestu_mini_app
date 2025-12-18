@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from ..deps import get_db, get_current_user
-from db.models import Lesson, GestureCard, Category
+from app.backend.db.models import Lesson, GestureCard, Category
 from app.backend.api.schemas import LessonOut, GestureCardOut
 
 router = APIRouter(prefix="/api/v1", tags=["lessons"])

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
 from ..deps import get_db, get_current_user
-from db.models import GestureDetection
+from app.backend.db.models import GestureDetection
 from app.backend.api.schemas import DetectionsBulkIn
 
 
