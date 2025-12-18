@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routes import lessons, sessions, detections
+from .routes import lessons, sessions, detections
 from app.backend.api.ws import router as ws_router
 
 app = FastAPI(title="Gestu API")
