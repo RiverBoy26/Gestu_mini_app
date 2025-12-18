@@ -1,7 +1,7 @@
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
-from db import get_session
-from db.models import User
+from ..db import get_session
+from ..db.models import User
 import hmac, hashlib, urllib.parse, json, os
 
 
