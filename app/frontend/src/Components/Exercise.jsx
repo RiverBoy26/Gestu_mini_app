@@ -97,6 +97,7 @@ const Exercise = () => {
           `Header X-Telegram-Init-Data: ${headers["X-Telegram-Init-Data"] ? "YES" : "NO"}`
         );
 
+        /*
         const res = await fetch(
           joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
           {
@@ -125,10 +126,51 @@ const Exercise = () => {
 
         const data = await res.json();
 
+        */
+        const requestUrl = joinUrl(
+          API_BASE || window.location.origin,
+          `/api/v1/categories/${category}/lessons`
+        );
+
+        const res = await fetch(requestUrl, { headers });
+
+        const ct = res.headers.get("content-type") || "";
+        const body = await res.text();
+
+        setDebugText(
+          (p) =>
+            p +
+            `\nrequestUrl: ${requestUrl}` +
+            `\nresponse.url: ${res.url}` +
+            `\ncontent-type: ${ct || "(empty)"}` +
+            `\nbody head: ${body.slice(0, 180).replace(/\s+/g, " ").trim()}`
+        );
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            setLoadError("Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram.");
+          } else if (res.status === 404) {
+            setLoadError("Категория не найдена.");
+          } else {
+            setLoadError(`Ошибка загрузки уроков (${res.status}).`);
+          }
+          setLessons([]);
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(body);
+        } catch {
+          setLessons([]);
+          setLoadError(
+            "API вернул HTML вместо JSON. Смотри debug: requestUrl/response.url/content-type/body head."
+          );
+          return;
+        }
+
         const sorted = Array.isArray(data)
-          ? data
-              .slice()
-              .sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
+          ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
           : [];
 
         setLessons(sorted);
