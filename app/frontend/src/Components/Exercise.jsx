@@ -18,9 +18,8 @@ const joinUrl = (base, path) => {
 
 const resolveMediaUrl = (url) => {
   if (!url) return "";
-  const s = String(url);
-  if (/^https?:\/\//i.test(s)) return s;
-  return joinUrl(API_BASE, s);
+  if (/^https?:\/\//i.test(url)) return url;
+  return joinUrl(API_BASE, url);
 };
 
 const getInitData = () => {
@@ -42,9 +41,7 @@ const readCompleted = () => {
   try {
     const raw = localStorage.getItem(PROGRESS_KEY);
     const arr = raw ? JSON.parse(raw) : [];
-    const set = new Set();
-    if (Array.isArray(arr)) arr.forEach((x) => set.add(String(x)));
-    return set;
+    return new Set(arr.map(String));
   } catch {
     return new Set();
   }
@@ -66,12 +63,11 @@ const Exercise = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [debugText, setDebugText] = useState(""); 
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
 
-  // подтягиваем уроки из БД
+  // загрузка уроков из БД
   useEffect(() => {
     let alive = true;
 
@@ -80,37 +76,19 @@ const Exercise = () => {
 
       setLoading(true);
       setLoadError("");
-      setDebugText("");
 
       try {
         const headers = getAuthHeaders();
+        const base = API_BASE || window.location.origin;
 
-        console.log("Telegram object:", window.Telegram);
-        console.log("initData:", window.Telegram?.WebApp?.initData);
-        console.log("REQUEST HEADERS:", headers);
-        const initData = getInitData();
-        setDebugText(
-          `API_BASE: ${API_BASE || "(empty)"}\n` +
-          `category: ${category}\n` +
-          `Telegram: ${window?.Telegram?.WebApp ? "YES" : "NO"}\n` +
-          `initData length: ${initData.length}\n` +
-          `Header X-Telegram-Init-Data: ${headers["X-Telegram-Init-Data"] ? "YES" : "NO"}`
-        );
-
-        /*
         const res = await fetch(
-          joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
-          {
-            headers,
-          }
+          joinUrl(base, `/api/v1/categories/${category}/lessons`),
+          { headers }
         );
-
-        setDebugText((p) => p + `\nHTTP status: ${res.status}`);
 
         if (!alive) return;
 
         if (!res.ok) {
-          // 401 = нет Telegram initData (или невалидная подпись)
           if (res.status === 401) {
             setLoadError(
               "Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram."
@@ -126,107 +104,51 @@ const Exercise = () => {
 
         const data = await res.json();
 
-        */
-        const base = API_BASE || window.location.origin;
-
-        const requestUrl =
-          joinUrl(base, `/api/v1/categories/${category}/lessons`) +
-          `?ts=${Date.now()}`;
-
-        const res = await fetch(requestUrl, {
-          headers,
-          cache: "no-store",
-        });
-
-        const ct = res.headers.get("content-type") || "";
-        const body = await res.text();
-
-        setDebugText(
-          (p) =>
-            p +
-            `\nrequestUrl: ${requestUrl}` +
-            `\nresponse.url: ${res.url}` +
-            `\ncontent-type: ${ct || "(empty)"}` +
-            `\nbody head: ${body.slice(0, 180).replace(/\s+/g, " ").trim()}`
-        );
-
-        if (!res.ok) {
-          if (res.status === 401) {
-            setLoadError("Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram.");
-          } else if (res.status === 404) {
-            setLoadError("Категория не найдена.");
-          } else {
-            setLoadError(`Ошибка загрузки уроков (${res.status}).`);
-          }
-          setLessons([]);
-          return;
-        }
-
-        let data;
-        try {
-          data = JSON.parse(body);
-        } catch {
-          setLessons([]);
-          setLoadError(
-            "API вернул HTML вместо JSON. Смотри debug: requestUrl/response.url/content-type/body head."
-          );
-          return;
-        }
-
         const sorted = Array.isArray(data)
-          ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
+          ? data.slice().sort(
+              (a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0)
+            )
           : [];
 
         setLessons(sorted);
-        setDebugText((p) => p + `\nLessons loaded: ${sorted.length}`);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setLessons([]);
         setLoadError("Не удалось загрузить уроки (ошибка сети).");
-        setDebugText((p) => p + `\nNetwork error: ${e?.message ?? String(e)}`);
       } finally {
         if (alive) setLoading(false);
       }
     };
 
     load();
-
     return () => {
       alive = false;
     };
   }, [category]);
 
-  // синхронизируем прогресс
+  // синхронизация прогресса
   useEffect(() => {
-    const sync = () => setCompletedKeys(readCompleted());
-    sync();
+    setCompletedKeys(readCompleted());
   }, [category, order]);
 
   const currentOrder = Number(order || 1);
 
   const maxOrder = useMemo(() => {
     if (!lessons.length) return 1;
-    const last = lessons[lessons.length - 1];
-    return Number(last?.lesson_order || lessons.length || 1);
+    return Number(lessons[lessons.length - 1]?.lesson_order || 1);
   }, [lessons]);
 
   const safeOrder = useMemo(() => {
-    const n = Number.isFinite(currentOrder) ? currentOrder : 1;
-    return Math.min(Math.max(1, n), maxOrder || 1);
+    return Math.min(Math.max(1, currentOrder), maxOrder);
   }, [currentOrder, maxOrder]);
 
-  // если в URL кривой order — аккуратно правим
   useEffect(() => {
-    if (loading) return;
-    if (!lessons.length) return;
-    if (!category) return;
-    if (safeOrder !== currentOrder) {
+    if (!loading && lessons.length && safeOrder !== currentOrder) {
       navigate(`/exercise/${category}/${safeOrder}`, { replace: true });
     }
-  }, [loading, lessons.length, category, safeOrder, currentOrder, navigate]);
+  }, [loading, lessons.length, safeOrder, currentOrder, category, navigate]);
 
   const currentLesson = useMemo(() => {
-    if (!lessons.length) return null;
     return lessons.find((l) => Number(l.lesson_order) === safeOrder) || null;
   }, [lessons, safeOrder]);
 
@@ -241,35 +163,17 @@ const Exercise = () => {
     if (!currentLesson) return;
     const key = lessonKey(category, currentLesson);
     const next = new Set(completedKeys);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
+    next.has(key) ? next.delete(key) : next.add(key);
     setCompletedKeys(next);
     writeCompleted(next);
   };
 
-  const goPrev = () => {
-    const prev = safeOrder - 1;
-    if (prev < 1) return;
-    navigate(`/exercise/${category}/${prev}`);
-  };
-
-  const goNext = () => {
-    const next = safeOrder + 1;
-    if (next > maxOrder) return;
-    navigate(`/exercise/${category}/${next}`);
-  };
-
-  const prevDisabled = safeOrder <= 1;
-  const nextDisabled = safeOrder >= maxOrder;
-
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) v.play().catch(() => {});
-    else v.pause();
+    v.paused ? v.play().catch(() => {}) : v.pause();
   };
 
-  // UI-состояния
   const descriptionText = currentLesson?.description?.trim()
     ? currentLesson.description
     : "Описание урока отсутствует";
@@ -300,25 +204,13 @@ const Exercise = () => {
           className={`lesson-status-btn ${isCompleted ? "done" : ""}`}
           onClick={toggleCompleted}
           disabled={!currentLesson}
-          aria-label="Статус урока"
-          title={isCompleted ? "Урок пройден" : "Не пройден"}
         >
           {isCompleted ? "✓" : "○"}
         </button>
 
         <div className="exercise-text-box">
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              fontSize: 12,
-              lineHeight: 1.3,
-              margin: "0 0 8px 0",
-              color: "#333",
-            }}
-          >{debugText}</pre>
           <p className="exercise-text">
-            {loading ? "Загрузка описания…" : loadError ? loadError : descriptionText}
+            {loading ? "Загрузка описания…" : loadError || descriptionText}
           </p>
         </div>
 
@@ -332,20 +224,31 @@ const Exercise = () => {
               muted
               playsInline
               controls={false}
-              preload="auto"
             />
           ) : (
             <div style={{ padding: 12 }}>
-              {loading ? "Загрузка видео…" : "Видео не найдено для этого урока"}
+              {loading ? "Загрузка видео…" : "Видео не найдено"}
             </div>
           )}
         </div>
 
         <div className="exercise-nav">
-          <button className="nav-btn" onClick={goPrev} disabled={prevDisabled || !lessons.length}>
+          <button
+            className="nav-btn"
+            onClick={() =>
+              safeOrder > 1 &&
+              navigate(`/exercise/${category}/${safeOrder - 1}`)
+            }
+          >
             &lt; Назад
           </button>
-          <button className="nav-btn" onClick={goNext} disabled={nextDisabled || !lessons.length}>
+          <button
+            className="nav-btn"
+            onClick={() =>
+              safeOrder < maxOrder &&
+              navigate(`/exercise/${category}/${safeOrder + 1}`)
+            }
+          >
             Вперёд &gt;
           </button>
         </div>

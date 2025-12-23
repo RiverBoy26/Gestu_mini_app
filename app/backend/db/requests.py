@@ -2,9 +2,12 @@ from . import get_session
 from .models import User, Lesson
 
 
-def add_user(username: str):
+def add_user(telegram_id: int, username: str | None):
     session = get_session()
-    new_user = User(username=username)
+    new_user = User(
+        telegram_id=telegram_id,
+        username=username,
+    )
     session.add(new_user)
     session.commit()
     session.close()
