@@ -9,7 +9,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "https://gestu.ru")
 async def start(message: Message):
     user = message.from_user
 
-    await rq.add_user(user.id, user.username)
+    rq.add_user(user.id, user.username)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Открыть Web App", web_app=WebAppInfo(url=WEBAPP_URL))]
