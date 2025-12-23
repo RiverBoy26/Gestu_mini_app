@@ -14,15 +14,31 @@ def get_db():
 
 
 def _check_telegram_init_data(init_data_raw: str, bot_token: str) -> dict:
+    if not bot_token:
+        raise HTTPException(status_code=500, detail="Bot token not configured (env TOKEN)")
+
     parsed = dict(urllib.parse.parse_qsl(init_data_raw, keep_blank_values=True))
-    if 'hash' not in parsed:
+
+    received_hash = parsed.pop("hash", None)
+    if not received_hash:
         raise HTTPException(status_code=401, detail="Missing hash")
-    received_hash = parsed.pop('hash')
+
+    parsed.pop("signature", None)
 
     data_check_string = "\n".join(f"{k}={parsed[k]}" for k in sorted(parsed.keys()))
-    secret_key = hashlib.sha256(bot_token.encode()).digest()
-    h = hmac.new(secret_key, msg=data_check_string.encode(), digestmod=hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(h, received_hash):
+    secret_key = hmac.new(
+        key=b"WebAppData",
+        msg=bot_token.encode("utf-8"),
+        digestmod=hashlib.sha256,
+    ).digest()
+
+    computed_hash = hmac.new(
+        key=secret_key,
+        msg=data_check_string.encode("utf-8"),
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+
+    if not hmac.compare_digest(computed_hash, received_hash):
         raise HTTPException(status_code=401, detail="Bad signature")
 
     user_json = parsed.get("user")
