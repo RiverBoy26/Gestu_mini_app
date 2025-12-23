@@ -11,28 +11,25 @@ const CATEGORIES_RU = {
   numbers: "Числа",
 };
 
-const RUS_ALPHABET = [
-  "А","Б","В","Г","Д","Е","Ё","Ж","З","И","Й","К","Л","М","Н","О","П","Р","С","Т","У","Ф","Х","Ц","Ч","Ш","Щ","Ъ","Ы","Ь","Э","Ю","Я"
-];
-
-const ANIMALS = [
-  { file: "cat", title: "Кошка" },
-  { file: "dog", title: "Собака" },
-  { file: "goat", title: "Коза" },
-  { file: "moose", title: "Лось" },
-  { file: "snake", title: "Змея" },
-  { file: "dolphin", title: "Дельфин" },
-  { file: "donkey", title: "Осёл" },
-  { file: "eagle", title: "Орел" },
-  { file: "fox", title: "Лиса" },
-  { file: "elephant", title: "Слон" },
-];
-
 const joinUrl = (base, path) => {
   if (!base) return path;
-  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  return `${base.replace(/\/+$/, "")}/${String(path || "").replace(/^\/+/, "")}`;
 };
 
+const resolveMediaUrl = (url) => {
+  if (!url) return "";
+  const s = String(url);
+  if (/^https?:\/\//i.test(s)) return s;
+  return joinUrl(API_BASE, s);
+};
+
+const getInitData = () => {
+  try {
+    return window?.Telegram?.WebApp?.initData || "";
+  } catch {
+    return "";
+  }
+};
 
 const getAuthHeaders = () => {
   const initData = getInitData();
@@ -62,88 +59,112 @@ const lessonKey = (slug, lesson) => {
   return `${slug}:${lesson?.lesson_order ?? ""}`;
 };
 
-const buildMockLessons = (slug) => {
-  if (slug === "words") {
-    return RUS_ALPHABET.map((letter, i) => ({
-      lesson_id: null,
-      lesson_order: i + 1,
-      title: letter,
-      description: "",
-      content_url: `/videos/words/${letter}.mp4`,
-      __mock: true,
-    }));
-  }
-  if (slug === "numbers") {
-    return Array.from({ length: 10 }).map((_, i) => ({
-      lesson_id: null,
-      lesson_order: i + 1,
-      title: String(i),
-      description: "",
-      content_url: `/videos/numbers/${i}.mp4`,
-      __mock: true,
-    }));
-  }
-  if (slug === "animals") {
-    return ANIMALS.map((a, i) => ({
-      lesson_id: null,
-      lesson_order: i + 1,
-      title: a.title,
-      description: "",
-      content_url: `/videos/animals/${a.file}.mp4`,
-      __mock: true,
-    }));
-  }
-  return [];
-};
-
 const Exercise = () => {
-  console.log("LESSON:", currentLesson);
-  console.log("DESCRIPTION:", JSON.stringify(currentLesson?.description));
   const navigate = useNavigate();
   const { category, order } = useParams();
 
-  const [lessons, setLessons] = useState(() => buildMockLessons(category));
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
 
+  // подтягиваем уроки из БД
   useEffect(() => {
-    setLessons(buildMockLessons(category));
+    let alive = true;
+
+    const load = async () => {
+      if (!category) return;
+
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const headers = getAuthHeaders();
+
+        const res = await fetch(
+          joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
+          {
+            headers,
+          }
+        );
+
+        if (!alive) return;
+
+        if (!res.ok) {
+          // 401 = нет Telegram initData (или невалидная подпись)
+          if (res.status === 401) {
+            setLoadError(
+              "Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram."
+            );
+          } else if (res.status === 404) {
+            setLoadError("Категория не найдена.");
+          } else {
+            setLoadError(`Ошибка загрузки уроков (${res.status}).`);
+          }
+          setLessons([]);
+          return;
+        }
+
+        const data = await res.json();
+
+        const sorted = Array.isArray(data)
+          ? data
+              .slice()
+              .sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
+          : [];
+
+        setLessons(sorted);
+      } catch (e) {
+        if (!alive) return;
+        setLessons([]);
+        setLoadError("Не удалось загрузить уроки (ошибка сети).");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      alive = false;
+    };
   }, [category]);
 
+  // синхронизируем прогресс
   useEffect(() => {
     const sync = () => setCompletedKeys(readCompleted());
     sync();
   }, [category, order]);
 
-  useEffect(() => {
-    (async () => {
-      const headers = getAuthHeaders();
-      if (!headers["X-Telegram-Init-Data"]) return;
-
-      try {
-        const res = await fetch(joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`), {
-          headers,
-        });
-        if (!res.ok) return;
-
-        const data = await res.json();
-        const sorted = Array.isArray(data)
-          ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
-          : [];
-
-        if (sorted.length) setLessons(sorted);
-      } catch (e) {
-        console.log("exercise lessons fetch error", e);
-      }
-    })();
-  }, [category]);
-
   const currentOrder = Number(order || 1);
 
+  const maxOrder = useMemo(() => {
+    if (!lessons.length) return 1;
+    const last = lessons[lessons.length - 1];
+    return Number(last?.lesson_order || lessons.length || 1);
+  }, [lessons]);
+
+  const safeOrder = useMemo(() => {
+    const n = Number.isFinite(currentOrder) ? currentOrder : 1;
+    return Math.min(Math.max(1, n), maxOrder || 1);
+  }, [currentOrder, maxOrder]);
+
+  // если в URL кривой order — аккуратно правим
+  useEffect(() => {
+    if (loading) return;
+    if (!lessons.length) return;
+    if (!category) return;
+    if (safeOrder !== currentOrder) {
+      navigate(`/exercise/${category}/${safeOrder}`, { replace: true });
+    }
+  }, [loading, lessons.length, category, safeOrder, currentOrder, navigate]);
+
   const currentLesson = useMemo(() => {
-    return lessons.find((l) => Number(l.lesson_order) === currentOrder) || null;
-  }, [lessons, currentOrder]);
+    if (!lessons.length) return null;
+    return lessons.find((l) => Number(l.lesson_order) === safeOrder) || null;
+  }, [lessons, safeOrder]);
 
   const categoryTitle = CATEGORIES_RU[category] || category;
 
@@ -163,21 +184,19 @@ const Exercise = () => {
   };
 
   const goPrev = () => {
-    const prev = currentOrder - 1;
+    const prev = safeOrder - 1;
     if (prev < 1) return;
     navigate(`/exercise/${category}/${prev}`);
   };
 
   const goNext = () => {
-    const maxOrder = Number(lessons[lessons.length - 1]?.lesson_order || currentOrder);
-    const next = currentOrder + 1;
+    const next = safeOrder + 1;
     if (next > maxOrder) return;
     navigate(`/exercise/${category}/${next}`);
   };
 
-  const prevDisabled = currentOrder <= 1;
-  const nextDisabled =
-    currentOrder >= Number(lessons[lessons.length - 1]?.lesson_order || currentOrder);
+  const prevDisabled = safeOrder <= 1;
+  const nextDisabled = safeOrder >= maxOrder;
 
   const togglePlay = () => {
     const v = videoRef.current;
@@ -186,25 +205,37 @@ const Exercise = () => {
     else v.pause();
   };
 
-  if (!currentLesson) return <div />;
+  // UI-состояния
+  const descriptionText = currentLesson?.description?.trim()
+    ? currentLesson.description
+    : "Описание урока отсутствует";
+
+  const videoSrc = resolveMediaUrl(currentLesson?.content_url);
 
   return (
     <div className="exercises-screen">
       <header className="header">
-        <button className="menu-btn" onClick={() => navigate("/menu")}>☰</button>
+        <button className="menu-btn" onClick={() => navigate("/menu")}>
+          ☰
+        </button>
         <h1 className="logo">GESTU</h1>
-        <div className="logo-icon"><img src={logotype} alt="logo" /></div>
+        <div className="logo-icon">
+          <img src={logotype} alt="logo" />
+        </div>
       </header>
 
       <div className="exercise-container">
         <div className="exercise-header">
           <div className="exercise-category">КАТЕГОРИЯ: {categoryTitle}</div>
-          <div className="exercise-topic">ТЕМА: {currentLesson.title}</div>
+          <div className="exercise-topic">
+            ТЕМА: {currentLesson?.title || (loading ? "Загрузка…" : "—")}
+          </div>
         </div>
 
         <button
           className={`lesson-status-btn ${isCompleted ? "done" : ""}`}
           onClick={toggleCompleted}
+          disabled={!currentLesson}
           aria-label="Статус урока"
           title={isCompleted ? "Урок пройден" : "Не пройден"}
         >
@@ -213,37 +244,44 @@ const Exercise = () => {
 
         <div className="exercise-text-box">
           <p className="exercise-text">
-            {currentLesson?.description?.trim()
-              ? currentLesson.description
-              : "Описание урока отсутствует"}
+            {loading ? "Загрузка описания…" : loadError ? loadError : descriptionText}
           </p>
         </div>
 
         <div className="exercise-video-box" onClick={togglePlay}>
-          <video
-            ref={videoRef}
-            src={currentLesson.content_url}
-            loop
-            autoPlay
-            muted
-            playsInline
-            controls={false}
-            preload="auto"
-          />
+          {videoSrc ? (
+            <video
+              ref={videoRef}
+              src={videoSrc}
+              loop
+              autoPlay
+              muted
+              playsInline
+              controls={false}
+              preload="auto"
+            />
+          ) : (
+            <div style={{ padding: 12 }}>
+              {loading ? "Загрузка видео…" : "Видео не найдено для этого урока"}
+            </div>
+          )}
         </div>
 
         <div className="exercise-nav">
-          <button className="nav-btn" onClick={goPrev} disabled={prevDisabled}>
+          <button className="nav-btn" onClick={goPrev} disabled={prevDisabled || !lessons.length}>
             &lt; Назад
           </button>
-          <button className="nav-btn" onClick={goNext} disabled={nextDisabled}>
+          <button className="nav-btn" onClick={goNext} disabled={nextDisabled || !lessons.length}>
             Вперёд &gt;
           </button>
         </div>
 
         <button
           className="exercises-start-btn"
-          onClick={() => navigate(`/practice?lesson_id=${currentLesson.lesson_id ?? ""}`)}
+          disabled={!currentLesson}
+          onClick={() =>
+            navigate(`/practice?lesson_id=${currentLesson?.lesson_id ?? ""}`)
+          }
         >
           Перейти к практике
         </button>
