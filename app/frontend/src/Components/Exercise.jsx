@@ -210,7 +210,11 @@ const Exercise = () => {
         </button>
 
         <div className="exercise-text-box">
-          <p className="exercise-text">{currentLesson.description ?? "Текст не найден!"}</p>
+          <p className="exercise-text">
+            {currentLesson?.description?.trim()
+              ? currentLesson.description
+              : "Описание урока отсутствует"}
+          </p>
         </div>
 
         <div className="exercise-video-box" onClick={togglePlay}>
