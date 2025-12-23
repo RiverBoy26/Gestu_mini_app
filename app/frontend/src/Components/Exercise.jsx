@@ -127,12 +127,16 @@ const Exercise = () => {
         const data = await res.json();
 
         */
-        const requestUrl = joinUrl(
-          API_BASE || window.location.origin,
-          `/api/v1/categories/${category}/lessons`
-        );
+        const base = API_BASE || window.location.origin;
 
-        const res = await fetch(requestUrl, { headers });
+        const requestUrl =
+          joinUrl(base, `/api/v1/categories/${category}/lessons`) +
+          `?ts=${Date.now()}`;
+
+        const res = await fetch(requestUrl, {
+          headers,
+          cache: "no-store",
+        });
 
         const ct = res.headers.get("content-type") || "";
         const body = await res.text();
