@@ -124,6 +124,8 @@ html, body {
 .exercise-text {
   font-size: 15px;
   line-height: 1.45;
+  color: #000;
+  white-space: pre-wrap;
 }
 
 /* === КНОПКИ НАВИГАЦИИ === */
