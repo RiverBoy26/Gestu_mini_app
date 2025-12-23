@@ -63,4 +63,7 @@ def get_current_user(
         db.add(user)
         db.commit()
         db.refresh(user)
+    print("TOKEN present:", bool(os.getenv("TOKEN")))
+    print("TOKEN head:", (os.getenv("TOKEN","")[:10] + "...") if os.getenv("TOKEN") else "NONE")
+    print("initData head:", x_init_data[:60])
     return user
