@@ -66,6 +66,7 @@ const Exercise = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [debugText, setDebugText] = useState(""); 
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
@@ -79,16 +80,32 @@ const Exercise = () => {
 
       setLoading(true);
       setLoadError("");
+      setDebugText("");
 
       try {
         const headers = getAuthHeaders();
 
+        console.log("Telegram object:", window.Telegram);
+        console.log("initData:", window.Telegram?.WebApp?.initData);
+        console.log("REQUEST HEADERS:", headers);
+        const initData = getInitData();
+        setDebugText(
+          `API_BASE: ${API_BASE || "(empty)"}\n` +
+          `category: ${category}\n` +
+          `Telegram: ${window?.Telegram?.WebApp ? "YES" : "NO"}\n` +
+          `initData length: ${initData.length}\n` +
+          `Header X-Telegram-Init-Data: ${headers["X-Telegram-Init-Data"] ? "YES" : "NO"}`
+        );
+
+        /*
         const res = await fetch(
           joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
           {
             headers,
           }
         );
+
+        setDebugText((p) => p + `\nHTTP status: ${res.status}`);
 
         if (!alive) return;
 
@@ -109,17 +126,64 @@ const Exercise = () => {
 
         const data = await res.json();
 
+        */
+        const base = API_BASE || window.location.origin;
+
+        const requestUrl =
+          joinUrl(base, `/api/v1/categories/${category}/lessons`) +
+          `?ts=${Date.now()}`;
+
+        const res = await fetch(requestUrl, {
+          headers,
+          cache: "no-store",
+        });
+
+        const ct = res.headers.get("content-type") || "";
+        const body = await res.text();
+
+        setDebugText(
+          (p) =>
+            p +
+            `\nrequestUrl: ${requestUrl}` +
+            `\nresponse.url: ${res.url}` +
+            `\ncontent-type: ${ct || "(empty)"}` +
+            `\nbody head: ${body.slice(0, 180).replace(/\s+/g, " ").trim()}`
+        );
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            setLoadError("Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram.");
+          } else if (res.status === 404) {
+            setLoadError("Категория не найдена.");
+          } else {
+            setLoadError(`Ошибка загрузки уроков (${res.status}).`);
+          }
+          setLessons([]);
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(body);
+        } catch {
+          setLessons([]);
+          setLoadError(
+            "API вернул HTML вместо JSON. Смотри debug: requestUrl/response.url/content-type/body head."
+          );
+          return;
+        }
+
         const sorted = Array.isArray(data)
-          ? data
-              .slice()
-              .sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
+          ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
           : [];
 
         setLessons(sorted);
+        setDebugText((p) => p + `\nLessons loaded: ${sorted.length}`);
       } catch (e) {
         if (!alive) return;
         setLessons([]);
         setLoadError("Не удалось загрузить уроки (ошибка сети).");
+        setDebugText((p) => p + `\nNetwork error: ${e?.message ?? String(e)}`);
       } finally {
         if (alive) setLoading(false);
       }
@@ -243,6 +307,16 @@ const Exercise = () => {
         </button>
 
         <div className="exercise-text-box">
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontSize: 12,
+              lineHeight: 1.3,
+              margin: "0 0 8px 0",
+              color: "#333",
+            }}
+          >{debugText}</pre>
           <p className="exercise-text">
             {loading ? "Загрузка описания…" : loadError ? loadError : descriptionText}
           </p>

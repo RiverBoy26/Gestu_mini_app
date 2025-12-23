@@ -2,12 +2,26 @@ from . import get_session
 from .models import User, Lesson
 
 
-def add_user(username: str):
+def add_user(telegram_id: int, username: str | None):
     session = get_session()
-    new_user = User(username=username)
-    session.add(new_user)
+
+    user = session.query(User).filter_by(telegram_id=telegram_id).first()
+    if user:
+        if username and user.username != username:
+            user.username = username
+            session.commit()
+        session.close()
+        return user
+
+    user = User(
+        telegram_id=telegram_id,
+        username=username,
+    )
+    session.add(user)
     session.commit()
+    session.refresh(user)
     session.close()
+    return user
 
 
 def add_lesson(title: str, description: str, content_url: str, lesson_order: int):
