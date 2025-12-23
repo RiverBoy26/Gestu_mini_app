@@ -66,6 +66,7 @@ const Exercise = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [debugText, setDebugText] = useState(""); 
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
@@ -79,6 +80,7 @@ const Exercise = () => {
 
       setLoading(true);
       setLoadError("");
+      setDebugText("");
 
       try {
         const headers = getAuthHeaders();
@@ -86,6 +88,14 @@ const Exercise = () => {
         console.log("Telegram object:", window.Telegram);
         console.log("initData:", window.Telegram?.WebApp?.initData);
         console.log("REQUEST HEADERS:", headers);
+        const initData = getInitData();
+        setDebugText(
+          `API_BASE: ${API_BASE || "(empty)"}\n` +
+          `category: ${category}\n` +
+          `Telegram: ${window?.Telegram?.WebApp ? "YES" : "NO"}\n` +
+          `initData length: ${initData.length}\n` +
+          `Header X-Telegram-Init-Data: ${headers["X-Telegram-Init-Data"] ? "YES" : "NO"}`
+        );
 
         const res = await fetch(
           joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
@@ -93,6 +103,8 @@ const Exercise = () => {
             headers,
           }
         );
+
+        setDebugText((p) => p + `\nHTTP status: ${res.status}`);
 
         if (!alive) return;
 
@@ -120,10 +132,12 @@ const Exercise = () => {
           : [];
 
         setLessons(sorted);
+        setDebugText((p) => p + `\nLessons loaded: ${sorted.length}`);
       } catch (e) {
         if (!alive) return;
         setLessons([]);
         setLoadError("Не удалось загрузить уроки (ошибка сети).");
+        setDebugText((p) => p + `\nNetwork error: ${e?.message ?? String(e)}`);
       } finally {
         if (alive) setLoading(false);
       }
@@ -247,6 +261,16 @@ const Exercise = () => {
         </button>
 
         <div className="exercise-text-box">
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontSize: 12,
+              lineHeight: 1.3,
+              margin: "0 0 8px 0",
+              color: "#333",
+            }}
+          >{debugText}</pre>
           <p className="exercise-text">
             {loading ? "Загрузка описания…" : loadError ? loadError : descriptionText}
           </p>
