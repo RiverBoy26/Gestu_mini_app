@@ -3,7 +3,7 @@
   font-family: "Arial", sans-serif;
   background-color: #8087ff;
   width: 100vw;           /* занимать всю ширину экрана */
-  min-height: 100dvh;          /* занимать всю высоту окна */
+  min-height: 100vw;          /* занимать всю высоту окна */
   overflow-x: hidden;
 }
 
@@ -112,12 +112,11 @@ img {
   padding: 16px;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,.2);
-
-  overflow-y: auto;
-
+  height:500px;
   margin-bottom: 20px;
   width: 100%;
   max-width: 330px;
+  overflow: hidden;
 }
 
 .exercise-text {
@@ -169,7 +168,6 @@ img {
   font-family: "Comic Sans MS";
   cursor: pointer;
   margin-top: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.22);
   transition: 0.15s;
   width: 100%;
   max-width: 330px;
