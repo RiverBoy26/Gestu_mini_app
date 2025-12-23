@@ -97,6 +97,8 @@ const buildMockLessons = (slug) => {
 };
 
 const Exercise = () => {
+  console.log("LESSON:", currentLesson);
+  console.log("DESCRIPTION:", JSON.stringify(currentLesson?.description));
   const navigate = useNavigate();
   const { category, order } = useParams();
 
@@ -251,8 +253,5 @@ const Exercise = () => {
     </div>
   );
 };
-
-console.log("LESSON:", currentLesson);
-console.log("DESCRIPTION:", JSON.stringify(currentLesson?.description));
 
 export default Exercise;
