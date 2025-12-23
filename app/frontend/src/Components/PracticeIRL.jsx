@@ -267,7 +267,7 @@ const PracticeIRL = () => {
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-      const SEND_INTERVAL_MS = 40; // Примерно 25 fps
+      const SEND_INTERVAL_MS = 66;
       if (time - lastSent < SEND_INTERVAL_MS) return;
 
       if (ws.bufferedAmount > 1_000_000) return;
@@ -275,8 +275,15 @@ const PracticeIRL = () => {
 
       lastSent = time;
 
-      ctx.drawImage(video, 0, 0, 224, 224);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.55);
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+
+      const side = Math.min(vw, vh);
+      const sx = (vw - side) / 2;
+      const sy = (vh - side) / 2;
+
+      ctx.drawImage(video, sx, sy, side, side, 0, 0, 224, 224);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
 
       ws.send(JSON.stringify({ type: "frame", data: dataUrl }));
     };

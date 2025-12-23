@@ -9,7 +9,7 @@ class Predictor:
     def __init__(self, model_config: dict):
         self.config = model_config
         self.provider = self.config.get("provider", "CPUExecutionProvider")
-        self.threshold = float(self.config.get("threshold", 0.5))
+        self.threshold = float(self.config.get("threshold", 0.55))
         self.topk = int(self.config.get("topk", 1))
         self.labels = {}
 
@@ -20,6 +20,11 @@ class Predictor:
         base_dir = Path(__file__).resolve().parent
         model_path = base_dir / self.config["path_to_model"]
 
+        opts = rt.SessionOptions()
+        opts.intra_op_num_threads = 4
+        opts.inter_op_num_threads = 1
+        opts.execution_mode = rt.ExecutionMode.ORT_SEQUENTIAL
+
         providers = [self.provider]
 
         if self.provider == "OpenVINOExecutionProvider":
@@ -29,6 +34,7 @@ class Predictor:
 
         self.session = rt.InferenceSession(
             str(model_path),
+            sess_options=opts,
             providers=providers
         )
 
@@ -52,7 +58,7 @@ class Predictor:
         return exp / np.sum(exp, axis=1, keepdims=True)
 
     def predict(self, frames: list[np.ndarray]):
-        if len(frames) == 0:
+        if not frames:
             return None
 
         clip = np.asarray(frames, dtype=np.float32) / 255.0

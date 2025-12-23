@@ -47,7 +47,7 @@ async def gesture_ws(ws: WebSocket):
 
     alive = True
 
-    infer_every_s = 0.6
+    infer_every_s = 0.4
     last_infer = 0.0
 
     ping_interval_s = 10.0
@@ -145,13 +145,11 @@ async def gesture_ws(ws: WebSocket):
             word = pred["labels"].get(0, "")
             conf = float(pred["confidence"].get(0, 0.0))
 
-            if conf < 0.6:
+            if conf < 0.55:
                 continue
 
             last_preds.append(word)
-            if len(last_preds) < 3:
-                continue
-            if not all(w == word for w in last_preds):
+            if len(last_preds) >= 3 and last_preds.count(word) < 2:
                 continue
 
             if (now - last_sent_at) < cooldown_s and word == last_sent_word:
