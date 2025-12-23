@@ -89,13 +89,6 @@ const Exercise = () => {
         console.log("initData:", window.Telegram?.WebApp?.initData);
         console.log("REQUEST HEADERS:", headers);
         const initData = getInitData();
-        setDebugText(
-          `API_BASE: ${API_BASE || "(empty)"}\n` +
-          `category: ${category}\n` +
-          `Telegram: ${window?.Telegram?.WebApp ? "YES" : "NO"}\n` +
-          `initData length: ${initData.length}\n` +
-          `Header X-Telegram-Init-Data: ${headers["X-Telegram-Init-Data"] ? "YES" : "NO"}`
-        );
 
         /*
         const res = await fetch(
@@ -174,7 +167,6 @@ const Exercise = () => {
         if (!alive) return;
         setLessons([]);
         setLoadError("Не удалось загрузить уроки (ошибка сети).");
-        setDebugText((p) => p + `\nNetwork error: ${e?.message ?? String(e)}`);
       } finally {
         if (alive) setLoading(false);
       }
