@@ -83,6 +83,10 @@ const Exercise = () => {
       try {
         const headers = getAuthHeaders();
 
+        console.log("Telegram object:", window.Telegram);
+        console.log("initData:", window.Telegram?.WebApp?.initData);
+        console.log("REQUEST HEADERS:", headers);
+
         const res = await fetch(
           joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
           {
