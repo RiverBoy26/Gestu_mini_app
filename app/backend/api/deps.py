@@ -27,32 +27,28 @@ def _check_telegram_init_data(init_data_raw: str, bot_token: str) -> dict:
     if not received_hash:
         raise HTTPException(status_code=401, detail="Missing hash")
 
-    # если прилетает signature — не участвует в проверке
     parsed.pop("signature", None)
 
     data_check_string = "\n".join(f"{k}={parsed[k]}" for k in sorted(parsed.keys()))
+    msg = data_check_string.encode("utf-8")
 
-    secret_key = hmac.new(
+    # Вариант A (по доке): key="WebAppData", msg=bot_token
+    secret_a = hmac.new(
         key=b"WebAppData",
         msg=bot_token.encode("utf-8"),
         digestmod=hashlib.sha256,
     ).digest()
+    computed_a = hmac.new(secret_a, msg, hashlib.sha256).hexdigest()
 
-    computed_hash = hmac.new(
-        key=secret_key,
-        msg=data_check_string.encode("utf-8"),
+    # Вариант B (на случай, если где-то перепутали порядок)
+    secret_b = hmac.new(
+        key=bot_token.encode("utf-8"),
+        msg=b"WebAppData",
         digestmod=hashlib.sha256,
-    ).hexdigest()
+    ).digest()
+    computed_b = hmac.new(secret_b, msg, hashlib.sha256).hexdigest()
 
-    if TELEGRAM_DEBUG:
-        print("TG DEBUG: initData len =", len(init_data_raw))
-        print("TG DEBUG: keys =", sorted(parsed.keys()))
-        print("TG DEBUG: auth_date =", parsed.get("auth_date"))
-        print("TG DEBUG: received_hash =", received_hash)
-        print("TG DEBUG: computed_hash =", computed_hash)
-        print("TG DEBUG: data_check_string head =", data_check_string[:180].replace("\n", "\\n"))
-
-    if not hmac.compare_digest(computed_hash, received_hash):
+    if not (hmac.compare_digest(computed_a, received_hash) or hmac.compare_digest(computed_b, received_hash)):
         raise HTTPException(status_code=401, detail="Bad signature")
 
     user_json = parsed.get("user")
