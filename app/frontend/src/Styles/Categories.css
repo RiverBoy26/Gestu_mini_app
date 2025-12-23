@@ -130,6 +130,14 @@
   font-family: "The_Hands_of_Deaf", sans-serif;
 }
 
+.node{
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;          /* центрируем содержимое */
+  place-items: center;
+}
+
 @font-face {
   font-family: "The_Hands_of_Deaf";
   src: url("../assets/fonts/The_Hands_of_Deaf.ttf") format("truetype");

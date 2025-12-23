@@ -201,7 +201,7 @@ const Categories = () => {
   const rawLessons = lessonsBySlug[activeSlug] || [];
 
   const displayLessons = useMemo(() => {
-    if (activeSlug === "words" || activeSlug === "alphabet") return rawLessons.slice().reverse();
+    if (activeSlug === "words" || activeSlug === "alphabet") return rawLessons.slice();
     return rawLessons;
   }, [rawLessons, activeSlug]);
 
@@ -289,8 +289,11 @@ const Categories = () => {
                   left: index % 2 === 0 ? "20px" : "140px",
                 }}
                 onClick={() => openExercise(lesson)}
-                title={lesson.title}
-              />
+                title={lesson.title}>
+                  <span className="node-icon" aria-hidden="true">
+                    {completed ? "✓" : !unlocked ? "🔒" : "⭐"}
+                  </span>
+              </div>
             );
           })}
         </div>

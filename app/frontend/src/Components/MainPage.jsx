@@ -1,7 +1,19 @@
-import React, { useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./../Styles/MainPage.css";
 import logotype from "./../assets/logo.svg"
+
+const PROGRESS_KEY = "gestu_completed_keys";
+
+const readLearnedCount = () => {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? new Set(arr.map(String)).size : 0;
+  } catch {
+    return 0;
+  }
+};
 
 const MainPage = () => {
   const navigate = useNavigate();
@@ -18,6 +30,46 @@ const MainPage = () => {
   const openIRL = () => {
     navigate("/practice"); 
   };
+
+  const [learnedCount, setLearnedCount] = useState(() => readLearnedCount());
+
+  // обновляем прогресс при возврате на главную (и при смене вкладки)
+ useEffect(() => {
+    const sync = () => setLearnedCount(readLearnedCount());
+
+    sync();
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("storage", sync);
+    window.addEventListener("gestu-progress", sync);
+
+    return () => {
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("gestu-progress", sync);
+    };
+  }, []);
+
+  // --- Логика уровней: 33 слова, по 11 на уровень ---
+  const LEVEL_SIZE = 11;
+  const TOTAL_WORDS = 33;
+
+  const clamped = Math.min(learnedCount, TOTAL_WORDS);
+
+  const { level, inLevelCount, progressPct } = useMemo(() => {
+    // уровень: 1..3
+    const lvl = Math.min(3, Math.floor(clamped / LEVEL_SIZE) + 1);
+
+    // сколько слов набрано в текущем уровне (0..10), после полного уровня сбрасывается
+    const inLvl = clamped % LEVEL_SIZE;
+
+    // если достигли ровно 11, полоска должна быть 100% на этом уровне
+    const pct =
+      inLvl === 0 && clamped !== 0 ? 100 : Math.round((inLvl / LEVEL_SIZE) * 100);
+
+    return { level: lvl, inLevelCount: inLvl, progressPct: pct };
+  }, [clamped]);
 
   useLayoutEffect(() => {
     const setVH = () => {
@@ -54,12 +106,12 @@ const MainPage = () => {
       {/* Основной блок уровня */}
       <div className="level-card">
         <div className="star">
-          <span className="star-value">42</span>
+          <span className="star-value">{inLevelCount + 11*(level-1)}</span>
         </div>
         <div className="progress-container">
-          <div className="progress-bar"></div>
+          <div className="progress-bar" style={{ width: `${progressPct}%` }} aria-label="Прогресс уровня"></div>
         </div>
-        <p className="level-text">Уровень 1</p>
+        <p className="level-text">Уровень {level}</p>
       </div>
 
       {/* Кнопка */}
