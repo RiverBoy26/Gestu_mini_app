@@ -283,11 +283,12 @@ const Exercise = () => {
         <button
           className={`lesson-status-btn ${isCompleted ? "done" : ""}`}
           onClick={toggleCompleted}
+          style={{color: "black"}}
           disabled={!currentLesson}
           aria-label="Статус урока"
           title={isCompleted ? "Урок пройден" : "Не пройден"}
         >
-          {isCompleted ? "✓" : "○"}
+          {isCompleted ? "Урок пройден" : "Урок не пройден"}
         </button>
 
 
