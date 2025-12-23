@@ -170,7 +170,6 @@ const Exercise = () => {
           : [];
 
         setLessons(sorted);
-        setDebugText((p) => p + `\nLessons loaded: ${sorted.length}`);
       } catch (e) {
         if (!alive) return;
         setLessons([]);
