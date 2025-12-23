@@ -130,9 +130,11 @@ export default function Dictionary() {
   const items = list[selectedSlug] ?? [];
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return !q ? items : items.filter((i) => i.title.toLowerCase().includes(q));
-  }, [items, search]);
+  const q = search.trim().toLowerCase();
+  return !q ? items : items.filter((i) => 
+    i.title.toLowerCase().startsWith(q)
+  );
+}, [items, search]);
 
   const learnedCount = items.filter((i) => i.learned).length;
   const totalCount = items.length || 1;
@@ -289,8 +291,6 @@ export default function Dictionary() {
             ))}
           </ul>
         </section>
-
-        <footer className="footer">GESTU</footer>
       </main>
     </div>
   );
