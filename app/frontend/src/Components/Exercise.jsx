@@ -142,15 +142,6 @@ const Exercise = () => {
         const ct = res.headers.get("content-type") || "";
         const body = await res.text();
 
-        setDebugText(
-          (p) =>
-            p +
-            `\nrequestUrl: ${requestUrl}` +
-            `\nresponse.url: ${res.url}` +
-            `\ncontent-type: ${ct || "(empty)"}` +
-            `\nbody head: ${body.slice(0, 180).replace(/\s+/g, " ").trim()}`
-        );
-
         if (!res.ok) {
           if (res.status === 401) {
             setLoadError("Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram.");
