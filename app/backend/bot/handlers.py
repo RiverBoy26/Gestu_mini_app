@@ -14,4 +14,4 @@ async def start(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Открыть Web App", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
-    await message.answer("Привет,!\n Доброе пожаловать в мир новых знаний, сегодня ты можешь стать одним из тех людей, кто говорит руками и слушает глазами!\nПомочь взглянуть на этот мир под новым углом?", reply_markup=kb)
+    await message.answer("Привет!\nДоброе пожаловать в мир новых знаний, сегодня ты можешь стать одним из тех людей, кто говорит руками и слушает глазами!\nПомочь взглянуть на этот мир под новым углом?", reply_markup=kb)
