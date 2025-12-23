@@ -33,7 +33,7 @@ const joinUrl = (base, path) => {
   return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 };
 
-const getInitData = () => window?.Telegram?.WebApp?.initData || "";
+
 const getAuthHeaders = () => {
   const initData = getInitData();
   return initData ? { "X-Telegram-Init-Data": initData } : {};
@@ -210,7 +210,7 @@ const Exercise = () => {
         </button>
 
         <div className="exercise-text-box">
-          <p className="exercise-text">{currentLesson.description}</p>
+          <p className="exercise-text">{currentLesson.description ?? "Текст не найден!"}</p>
         </div>
 
         <div className="exercise-video-box" onClick={togglePlay}>
