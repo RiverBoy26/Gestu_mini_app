@@ -148,6 +148,7 @@ html, body {
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,.18);
   transition: 0.15s;
+  margin: 5% 5% auto;
 }
 .lesson-status-btn {
   background-color:#4aff95;
@@ -183,7 +184,11 @@ html, body {
   aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: 14px;
-  margin: 0 auto;  
+  margin: 10px 10px auto;
+}
+
+.lesson-status-btn {
+  margin: 10px 10px auto;
 }
 
 .exercise-video-box video {

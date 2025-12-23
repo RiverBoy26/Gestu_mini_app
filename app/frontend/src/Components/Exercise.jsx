@@ -279,6 +279,7 @@ const Exercise = () => {
           </div>
         </div>
 
+        <button className="nav-btn" style={{color: "purple"}} onClick={() => navigate("/categories")}>Вернуться к категориям</button>
         <button
           className={`lesson-status-btn ${isCompleted ? "done" : ""}`}
           onClick={toggleCompleted}
@@ -288,6 +289,7 @@ const Exercise = () => {
         >
           {isCompleted ? "✓" : "○"}
         </button>
+
 
         <div className="exercise-text-box">
           <pre
