@@ -72,6 +72,7 @@ const Exercise = () => {
   const videoRef = useRef(null);
 
   useEffect(() => {
+    containerRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
     window.scrollTo(0, 0);
   }, [category, order]);
 
@@ -275,7 +276,7 @@ const Exercise = () => {
         </div>
       </header>
 
-      <div className="exercise-container">
+      <div className="exercise-container" ref={containerRef}>
         <div className="exercise-header">
           <div className="exercise-category">КАТЕГОРИЯ: {categoryTitle}</div>
           <div className="exercise-topic">
