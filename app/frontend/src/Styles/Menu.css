@@ -84,16 +84,32 @@
   background: none;
   border: none;
   color: #2c3e50;
-  padding: 16px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   cursor: pointer;
-  transition: color 0.3s ease, transform 0.2s ease;
-  border-radius: 50%;
+  transition: color 0.3s ease, transform 0.2s ease, background 0.2s ease;
+  border-radius: 10px;
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
+  right: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .menu-close:hover {
   color: #6e82ff;
   transform: scale(1.1);
+}
+
+.menu-close:active {
+  background: rgba(110, 130, 255, 0.15);
+  transform: scale(0.98);
+}
+
+.menu-close:focus {
+  outline: none;
 }
