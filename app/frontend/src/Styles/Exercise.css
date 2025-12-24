@@ -5,9 +5,11 @@
   width: 100vw;           /* занимать всю ширину экрана */
   min-height: 100vw;          /* занимать всю высоту окна */
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-img {
+.logo-icon img {
   width: 50px;
   height: auto;
 }
@@ -54,14 +56,13 @@ img {
 .exercise-container {
   font-family: "Arial", sans-serif;
   background-color: #8087ff;
-  width: 100vw;           /* занимать всю ширину экрана */
-  height: 100vh;          /* занимать всю высоту окна */
+  width: 100vw;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow: hidden;
-  flex: 1;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* === ЗАГОЛОВКИ === */

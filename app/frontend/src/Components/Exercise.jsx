@@ -71,6 +71,10 @@ const Exercise = () => {
 
   const videoRef = useRef(null);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [category, order]);
+
   // подтягиваем уроки из БД
   useEffect(() => {
     let alive = true;
