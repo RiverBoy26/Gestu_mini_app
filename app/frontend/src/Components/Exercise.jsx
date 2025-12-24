@@ -70,6 +70,7 @@ const Exercise = () => {
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     containerRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
