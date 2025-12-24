@@ -5,15 +5,17 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(110, 130, 255, 0.75); /* как на картинке */
+  background: rgba(110, 130, 255, 0.75);
   backdrop-filter: blur(6px);
   opacity: 0;
+  pointer-events: none;              /* ✅ ВАЖНО */
   transition: opacity 0.25s ease;
   z-index: 900;
 }
 
 .menu-overlay.show {
   opacity: 1;
+  pointer-events: auto;              /* ✅ ВАЖНО */
 }
 
 /* Контейнер бокового меню */
@@ -36,35 +38,15 @@
   transform: translateX(0);
 }
 
-/* Кнопка закрытия */
-.menu-close {
-  font-size: 24px;
-  background: none;
-  border: none;
-  padding: 12px;
-  cursor: pointer;
-}
-
 /* Список меню */
 .menu-content {
-  margin-top: 20px;
+  margin-top: 64px;
 }
 
 .menu-content ul {
   list-style: none;
   padding: 0;
   margin: 0;
-}
-
-.menu-content li {
-  padding: 16px 20px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.menu-content li:hover {
-  background: rgba(0,0,0,0.05);
 }
 
 /* Стили кнопок меню */
@@ -106,6 +88,9 @@
   cursor: pointer;
   transition: color 0.3s ease, transform 0.2s ease;
   border-radius: 50%;
+  position: absolute;
+  top: 8px;
+  right: 8px;
 }
 
 .menu-close:hover {
