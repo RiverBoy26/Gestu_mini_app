@@ -64,7 +64,7 @@ const Exercise = () => {
   const { category, order } = useParams();
 
   const [lessons, setLessons] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);scrollTo
   const [loadError, setLoadError] = useState("");
   const [debugText, setDebugText] = useState(""); 
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
@@ -77,6 +77,27 @@ const Exercise = () => {
     window.scrollTo(0, 0);
   }, [category, order]);
 
+  useEffect(() => {
+    const tg = window?.Telegram?.WebApp;
+    if (!tg) return;
+
+    const apply = () => {
+      const inset = tg.contentSafeAreaInset || tg.safeAreaInset || {};
+      const top = Number(inset.top) || 0;
+      document.documentElement.style.setProperty("--tma-safe-top", `${top}px`);
+    };
+
+    apply();
+
+    tg.onEvent?.("contentSafeAreaChanged", apply);
+    tg.onEvent?.("safeAreaChanged", apply);
+
+    return () => {
+      tg.offEvent?.("contentSafeAreaChanged", apply);
+      tg.offEvent?.("safeAreaChanged", apply);
+    };
+  }, []);
+  
   // подтягиваем уроки из БД
   useEffect(() => {
     let alive = true;
