@@ -64,41 +64,48 @@ const Exercise = () => {
   const { category, order } = useParams();
 
   const [lessons, setLessons] = useState([]);
-  const [loading, setLoading] = useState(true);scrollTo
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [debugText, setDebugText] = useState(""); 
+  const [debugText, setDebugText] = useState("");
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const videoRef = useRef(null);
-  const containerRef = useRef(null);
+  const scrollRef = useRef(null);
 
-  useEffect(() => {
-    containerRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    window.scrollTo(0, 0);
-  }, [category, order]);
-
+  // Telegram safe area + expand
   useEffect(() => {
     const tg = window?.Telegram?.WebApp;
     if (!tg) return;
 
-    const apply = () => {
+    try {
+      tg.ready?.();
+      tg.expand?.(); // раскрыть bottom sheet :contentReference[oaicite:2]{index=2}
+    } catch {}
+
+    const applyInsets = () => {
       const inset = tg.contentSafeAreaInset || tg.safeAreaInset || {};
       const top = Number(inset.top) || 0;
       document.documentElement.style.setProperty("--tma-safe-top", `${top}px`);
     };
 
-    apply();
+    applyInsets();
 
-    tg.onEvent?.("contentSafeAreaChanged", apply);
-    tg.onEvent?.("safeAreaChanged", apply);
+    tg.onEvent?.("contentSafeAreaChanged", applyInsets);
+    tg.onEvent?.("safeAreaChanged", applyInsets);
 
     return () => {
-      tg.offEvent?.("contentSafeAreaChanged", apply);
-      tg.offEvent?.("safeAreaChanged", apply);
+      tg.offEvent?.("contentSafeAreaChanged", applyInsets);
+      tg.offEvent?.("safeAreaChanged", applyInsets);
     };
   }, []);
-  
-  // подтягиваем уроки из БД
+
+  // reset scroll on change
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.scrollTo(0, 0);
+  }, [category, order]);
+
+  // load lessons
   useEffect(() => {
     let alive = true;
 
@@ -111,43 +118,6 @@ const Exercise = () => {
 
       try {
         const headers = getAuthHeaders();
-
-        console.log("Telegram object:", window.Telegram);
-        console.log("initData:", window.Telegram?.WebApp?.initData);
-        console.log("REQUEST HEADERS:", headers);
-        const initData = getInitData();
-
-        /*
-        const res = await fetch(
-          joinUrl(API_BASE, `/api/v1/categories/${category}/lessons`),
-          {
-            headers,
-          }
-        );
-
-        setDebugText((p) => p + `\nHTTP status: ${res.status}`);
-
-        if (!alive) return;
-
-        if (!res.ok) {
-          // 401 = нет Telegram initData (или невалидная подпись)
-          if (res.status === 401) {
-            setLoadError(
-              "Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram."
-            );
-          } else if (res.status === 404) {
-            setLoadError("Категория не найдена.");
-          } else {
-            setLoadError(`Ошибка загрузки уроков (${res.status}).`);
-          }
-          setLessons([]);
-          return;
-        }
-
-        const data = await res.json();
-
-        */
-
         const base = API_BASE || window.location.origin;
 
         const requestUrl =
@@ -159,8 +129,9 @@ const Exercise = () => {
           cache: "no-store",
         });
 
-        const ct = res.headers.get("content-type") || "";
         const body = await res.text();
+
+        if (!alive) return;
 
         if (!res.ok) {
           if (res.status === 401) {
@@ -179,9 +150,8 @@ const Exercise = () => {
           data = JSON.parse(body);
         } catch {
           setLessons([]);
-          setLoadError(
-            "API вернул HTML вместо JSON. Смотри debug: requestUrl/response.url/content-type/body head."
-          );
+          setLoadError("API вернул не JSON. Проверь эндпоинт /api/v1/.../lessons");
+          setDebugText(body.slice(0, 400));
           return;
         }
 
@@ -190,7 +160,7 @@ const Exercise = () => {
           : [];
 
         setLessons(sorted);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setLessons([]);
         setLoadError("Не удалось загрузить уроки (ошибка сети).");
@@ -206,10 +176,9 @@ const Exercise = () => {
     };
   }, [category]);
 
-  // синхронизируем прогресс
+  // sync progress
   useEffect(() => {
-    const sync = () => setCompletedKeys(readCompleted());
-    sync();
+    setCompletedKeys(readCompleted());
   }, [category, order]);
 
   const currentOrder = Number(order || 1);
@@ -225,7 +194,7 @@ const Exercise = () => {
     return Math.min(Math.max(1, n), maxOrder || 1);
   }, [currentOrder, maxOrder]);
 
-  // если в URL кривой order — аккуратно правим
+  // fix wrong order in url
   useEffect(() => {
     if (loading) return;
     if (!lessons.length) return;
@@ -279,7 +248,6 @@ const Exercise = () => {
     else v.pause();
   };
 
-  // UI-состояния
   const descriptionText = currentLesson?.description?.trim()
     ? currentLesson.description
     : "Описание урока отсутствует";
@@ -288,51 +256,35 @@ const Exercise = () => {
 
   return (
     <div className="exercises-screen">
-      <header className="header">
-        <button className="menu-btn" onClick={() => navigate("/menu")}>
-          ☰
-        </button>
-        <h1 className="logo">GESTU</h1>
-        <div className="logo-icon">
+      <header className="exercise-topbar">
+        <button className="exercise-menu-btn" onClick={() => navigate("/menu")}>☰</button>
+        <h1 className="exercise-logo">GESTU</h1>
+        <div className="exercise-logo-icon">
           <img src={logotype} alt="logo" />
         </div>
       </header>
 
-      <div className="exercise-container" ref={containerRef}>
-        <div className="exercise-header">
+      <div className="exercise-scroll" ref={scrollRef}>
+        <div className="exercise-meta">
           <div className="exercise-category">КАТЕГОРИЯ: {categoryTitle}</div>
           <div className="exercise-topic">
             ТЕМА: {currentLesson?.title || (loading ? "Загрузка…" : "—")}
           </div>
         </div>
 
-        <button className="nav-btn" style={{color: "purple"}} onClick={() => navigate("/categories")}>Вернуться к категориям</button>
         <button
           className={`lesson-status-btn ${isCompleted ? "done" : ""}`}
           onClick={toggleCompleted}
-          style={{color: "black"}}
           disabled={!currentLesson}
-          aria-label="Статус урока"
-          title={isCompleted ? "Урок пройден" : "Не пройден"}
         >
           {isCompleted ? "Урок пройден" : "Урок не пройден"}
         </button>
 
-
         <div className="exercise-text-box">
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              fontSize: 12,
-              lineHeight: 1.3,
-              margin: "0 0 8px 0",
-              color: "#333",
-            }}
-          >{debugText}</pre>
-          <p className="exercise-text">
+          {debugText ? <pre className="exercise-debug">{debugText}</pre> : null}
+          <div className="exercise-text">
             {loading ? "Загрузка описания…" : loadError ? loadError : descriptionText}
-          </p>
+          </div>
         </div>
 
         <div className="exercise-video-box" onClick={togglePlay}>
@@ -348,7 +300,7 @@ const Exercise = () => {
               preload="auto"
             />
           ) : (
-            <div style={{ padding: 12 }}>
+            <div className="exercise-video-empty">
               {loading ? "Загрузка видео…" : "Видео не найдено для этого урока"}
             </div>
           )}
@@ -366,9 +318,7 @@ const Exercise = () => {
         <button
           className="exercises-start-btn"
           disabled={!currentLesson}
-          onClick={() =>
-            navigate(`/practice?lesson_id=${currentLesson?.lesson_id ?? ""}`)
-          }
+          onClick={() => navigate(`/practice?lesson_id=${currentLesson?.lesson_id ?? ""}`)}
         >
           Перейти к практике
         </button>

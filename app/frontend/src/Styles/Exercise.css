@@ -1,103 +1,96 @@
-:root { --tma-safe-top: 0px; }
-/* === ОБЩИЙ ЭКРАН === */
-.exercises-screen {
-  font-family: "Arial", sans-serif;
+:root{
+  --tma-safe-top: 0px;
+  --exercise-topbar-h: 48px;
+}
+
+/* экран */
+.exercises-screen{
+  font-family: Arial, sans-serif;
   background-color: #8087ff;
-  width: 100vw;           /* занимать всю ширину экрана */
-  min-height: var(--tg-viewport-stable-height, 100vh);    /* занимать всю высоту окна */
-  padding-top: var(--tma-safe-top);
-  overflow-x: hidden;
+  width: 100vw;
+  height: var(--tg-viewport-stable-height, 100vh); /* Telegram stable height :contentReference[oaicite:3]{index=3} */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-top: var(--tma-safe-top);
 }
 
-.logo-icon img {
-  width: 50px;
-  height: auto;
-}
-
-/* === HEADER как в MainPage === */
-.header {
+/* верхняя панель (НЕ конфликтует с другими .header) */
+.exercise-topbar{
   width: 100%;
+  height: var(--exercise-topbar-h);
+  flex-shrink: 0;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,.1);
-  position: sticky;
-  top: var(--tma-safe-top);
-  z-index: 50;
-  z-index: 5;
-  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.menu-btn {
-  font-size: 18px;              /* ← размер символа */
+.exercise-menu-btn{
+  font-size: 18px;
   background: rgb(228, 228, 228);
   border: none;
   cursor: pointer;
-  padding: 6px 10px;             /* ← компактная кнопка */
+  padding: 6px 10px;
   border-radius: 6px;
-  display: flex;                /* ← центрирование символа */
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.logo {
+.exercise-logo{
   font-size: 20px;
-  font-weight: bold;
+  font-weight: 700;
   letter-spacing: 2px;
   font-family: "airborne", sans-serif;
+  margin: 0;
 }
 
-.logo-icon {
-  font-size: 24px;
+.exercise-logo-icon img{
+  width: 50px;
+  height: auto;
+  display: block;
 }
 
-/* === КОНТЕНТНЫЙ БЛОК === */
-.exercise-container {
-  font-family: "Arial", sans-serif;
-  background-color: #8087ff;
-  width: 100vw;
+/* скроллится только контент */
+.exercise-scroll{
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-x: hidden;
-  overflow-y: auto;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
-/* === ЗАГОЛОВКИ === */
-.exercise-header {
+/* meta */
+.exercise-meta{
   width: 100%;
   max-width: 330px;
   text-align: center;
-  margin-bottom: 18px;
-  font-size: 48px;
-  font-family: "airborne", sans-serif;
 }
 
-/* фиолетово-серый стиль карточек */
-.exercise-category {
+/* карточки */
+.exercise-category{
   background: #353b77;
   color: #fff;
   padding: 12px;
   border-radius: 14px;
   font-size: 14px;
-  font-weight: bold;
+  font-weight: 700;
   margin-bottom: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,.18);
   width: 100%;
-  max-width: 330px;
+  box-sizing: border-box;
 }
 
-.exercise-category .star {
-  margin-left: 6px;
-  font-size: 18px;
-}
-
-.exercise-topic {
+.exercise-topic{
   background: #4d4d6b;
   color: #fff;
   padding: 10px;
@@ -105,42 +98,95 @@
   font-size: 13px;
   box-shadow: 0 4px 10px rgba(0,0,0,.18);
   width: 100%;
-  max-width: 330px;
+  box-sizing: border-box;
 }
 
-/* === ТЕКСТОВАЯ КАРТОЧКА === */
-.exercise-text-box {
+/* статус урока */
+.lesson-status-btn{
   width: 100%;
-  max-width: 280px;
+  max-width: 330px;
+  background-color: #e7beff;
+  border: none;
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: "Comic Sans MS";
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+  transition: 0.15s;
+}
+
+.lesson-status-btn:active{ transform: scale(0.98); }
+.lesson-status-btn:disabled{ opacity: 0.6; cursor: not-allowed; }
+.lesson-status-btn.done{ filter: saturate(1.05); }
+
+/* текст */
+.exercise-text-box{
+  width: 100%;
+  max-width: 330px;
   background: #fff;
   padding: 16px;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,.2);
   max-height: 320px;
-  margin-bottom: 20px;
-  width: 100%;
-  max-width: 330px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
-.exercise-text {
+.exercise-debug{
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.3;
+  margin: 0 0 8px 0;
+  color: #333;
+  opacity: 0.85;
+}
+
+.exercise-text{
   font-size: 15px;
   line-height: 1.45;
   color: #000;
   white-space: pre-wrap;
 }
 
-/* === КНОПКИ НАВИГАЦИИ === */
-.exercise-nav {
+/* видео */
+.exercise-video-box{
+  width: clamp(240px, 70vw, 320px);
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.18);
+}
+
+.exercise-video-box video{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exercise-video-empty{
+  padding: 12px;
+  color: #222;
+  background: rgba(255,255,255,.65);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* навигация */
+.exercise-nav{
   display: flex;
   justify-content: center;
   gap: 16px;
-  margin-bottom: 20px;
   width: 100%;
   max-width: 330px;
 }
 
-.nav-btn {
+.nav-btn{
   background: #b8b8d1;
   border: none;
   padding: 10px 22px;
@@ -150,56 +196,31 @@
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,.18);
   transition: 0.15s;
-  margin: 5% 5% auto;
-}
-.lesson-status-btn {
-  background-color:#e7beff;
-  font-family: "Comic Sans MS";
+  flex: 1;
 }
 
-.nav-btn:active {
-  transform: scale(0.95);
-}
+.nav-btn:active{ transform: scale(0.95); }
+.nav-btn:disabled{ opacity: 0.6; cursor: not-allowed; }
 
-/* === КНОПКА "ПЕРЕЙТИ К УПРАЖНЕНИЯМ" === */
-.exercises-start-btn {
+/* практика */
+.exercises-start-btn{
+  width: 100%;
+  max-width: 330px;
   background: linear-gradient(145deg, #b14cf0, #ff3fcf);
-  color: white;
+  color: #fff;
   padding: 12px 28px;
   border: none;
   border-radius: 18px;
   font-size: 18px;
   font-family: "Comic Sans MS";
   cursor: pointer;
-  margin-top: 10px;
   transition: 0.15s;
-  width: 100%;
-  max-width: 330px;
 }
 
-.exercises-start-btn:active {
-  transform: scale(0.95);
-}
+.exercises-start-btn:active{ transform: scale(0.97); }
+.exercises-start-btn:disabled{ opacity: 0.6; cursor: not-allowed; }
 
-.exercise-video-box {
-  width: clamp(240px, 70vw, 320px);
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  border-radius: 14px;
-  margin: 10px 10px auto;
-}
-
-.lesson-status-btn {
-  margin: 10px 10px auto;
-}
-
-.exercise-video-box video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-@font-face {
+@font-face{
   font-family: "The_Hands_of_Deaf";
   src: url("../assets/fonts/The_Hands_of_Deaf.ttf") format("truetype");
   font-weight: normal;
@@ -207,7 +228,7 @@
   font-display: swap;
 }
 
-@font-face {
+@font-face{
   font-family: "airborne";
   src: url("../assets/fonts/airborne.ttf") format("truetype");
   font-weight: normal;
