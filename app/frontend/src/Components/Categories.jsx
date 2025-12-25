@@ -197,38 +197,6 @@ const Categories = () => {
   useEffect(() => {
     if (!activeSlug) return;
 
-    let alive = true;
-
-    const load = async () => {
-      try {
-        const res = await fetch(joinUrl(API_BASE, `/api/v1/categories/${activeSlug}/lessons`), {
-          headers,
-        });
-        const data = await res.json();
-
-        if (!alive) return;
-
-        setLessonsBySlug((prev) => ({
-          ...prev,
-          [activeSlug]: data,
-        }));
-
-        setLessonsReady(true);
-      } catch (e) {
-        setLessonsReady(true);
-      }
-    };
-    setLessonsReady(false);
-    load();
-
-    return () => {
-      alive = false;
-    };
-  }, [activeSlug]);
-/*
-  useEffect(() => {
-    if (!activeSlug) return;
-
     (async () => {
       const headers = getAuthHeaders();
       if (!headers["X-Telegram-Init-Data"]) return;
@@ -252,7 +220,7 @@ const Categories = () => {
       }
     })();
   }, [activeSlug]);
-*/
+
   const rawLessons = lessonsBySlug[activeSlug] || [];
 
   const displayLessons = useMemo(() => {
