@@ -189,21 +189,21 @@ const PracticeLesson = () => {
         </div>
       </header>
 
-      <div className="practice-lesson-info-row">
-        <button
-          className="practice-lesson-info-btn"
-          onClick={() => setShowInfo(true)}
-          type="button"
-          aria-label="Информирование по распознаванию"
-          title="Информирование"
-        >
-          ℹ️
-        </button>
-      </div>
-
       <div className="practice-lesson-content">
-        <div className="practice-lesson-topic">
-          ТЕМА: <span className="practice-lesson-topic-word">{topicWord || "—"}</span>
+        <div className="practice-lesson-topic-row">
+          <div className="practice-lesson-topic">
+            ТЕМА: <span className="practice-lesson-topic-word">{topicWord || "—"}</span>
+          </div>
+
+          <button
+            className="practice-lesson-info-btn practice-lesson-info-btn--topic"
+            onClick={() => setShowInfo(true)}
+            type="button"
+            aria-label="Информирование по распознаванию"
+            title="Информирование"
+          >
+            ℹ️
+          </button>
         </div>
 
         <button className="practice-lesson-back-btn" onClick={backToLesson}>

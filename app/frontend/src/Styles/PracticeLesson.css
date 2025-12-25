@@ -221,12 +221,6 @@
   font-display: swap;
 }
 
-.practice-lesson-info-row{
-  display:flex;
-  justify-content:flex-end;
-  padding: 10px 16px 0;
-}
-
 .practice-lesson-info-btn{
   border: none;
   background: rgba(255,255,255,0.08);
@@ -272,4 +266,33 @@
   border-radius: 14px;
   padding: 10px 12px;
   cursor: pointer;
+}
+
+.practice-lesson-topic-row{
+  width: 100%;
+  max-width: 330px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.practice-lesson-topic{
+  flex: 1;
+  width: auto;
+  max-width: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.practice-lesson-info-btn--topic{
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #4d4d6b;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
 }
