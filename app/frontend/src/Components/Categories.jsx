@@ -197,29 +197,40 @@ const Categories = () => {
   useEffect(() => {
     if (!activeSlug) return;
 
+    let alive = true;
+    setLessonsReady(false);
+
     (async () => {
       const headers = getAuthHeaders();
-      if (!headers["X-Telegram-Init-Data"]) return;
+      if (!headers["X-Telegram-Init-Data"]) {
+        if (alive) setLessonsReady(true);
+        return;
+      }
 
       try {
-        const res = await fetch(joinUrl(API_BASE, `/api/v1/categories/${activeSlug}/lessons`), {
-          headers,
-        });
-        if (!res.ok) return;
+        const res = await fetch(
+          joinUrl(API_BASE, `/api/v1/categories/${activeSlug}/lessons`),
+          { headers }
+        );
+        if (!res.ok) throw new Error();
 
         const data = await res.json();
         const lessons = Array.isArray(data)
           ? data.slice().sort((a, b) => (a.lesson_order ?? 0) - (b.lesson_order ?? 0))
           : [];
 
-        if (lessons.length) {
+        if (alive && lessons.length) {
           setLessonsBySlug((prev) => ({ ...prev, [activeSlug]: lessons }));
         }
-      } catch (e) {
-        console.log("lessons fetch error", e);
+      } catch {}
+      finally {
+        if (alive) setLessonsReady(true); // ⬅️ И СЮДА
       }
     })();
+
+    return () => { alive = false; };
   }, [activeSlug]);
+
 
   const rawLessons = lessonsBySlug[activeSlug] || [];
 
@@ -299,7 +310,7 @@ const Categories = () => {
             <path d={linePath} stroke="white" strokeWidth="6" fill="none" />
           </svg>
 
-          {displayLessons.map((lesson, index) => {
+          {lessonsReady && displayLessons.map((lesson, index) => {
             const unlocked = isUnlocked(lesson);
             const completed = isCompleted(lesson);
 
