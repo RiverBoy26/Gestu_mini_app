@@ -21,6 +21,12 @@ const writeCompleted = (set) => {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(Array.from(set)));
 };
 
+const normalize = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
 const PracticeLesson = () => {
   const navigate = useNavigate();
   const { category, order } = useParams();
@@ -50,6 +56,24 @@ const PracticeLesson = () => {
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
   const isCompleted = useMemo(() => completedKeys.has(lessonKey), [completedKeys, lessonKey]);
+
+  const isMatch = useMemo(() => {
+    if (!topicWord || !detectedWord) return false;
+    return normalize(topicWord) === normalize(detectedWord);
+  }, [topicWord, detectedWord]);
+
+  // если совпало — автоматически засчитываем урок
+  useEffect(() => {
+    if (!isMatch) return;
+
+    setCompletedKeys((prev) => {
+      if (prev.has(lessonKey)) return prev;
+      const next = new Set(prev);
+      next.add(lessonKey);
+      writeCompleted(next);
+      return next;
+    });
+  }, [isMatch, lessonKey]);
 
   const toggleCompleted = () => {
     const next = new Set(completedKeys);
@@ -209,6 +233,12 @@ const PracticeLesson = () => {
               Показать
             </button>
           </form>
+
+          {detectedWord && (
+            <div className={`practice-lesson-compare ${isMatch ? "ok" : "fail"}`}>
+              {isMatch ? "Совпало ✓ Урок засчитан" : "Не совпало ✗ Попробуй ещё"}
+            </div>
+          )}
         </div>
       </div>
 
