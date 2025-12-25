@@ -148,7 +148,10 @@ const Categories = () => {
   const openMenu = () => navigate("/menu");
 
   useEffect(() => {
-    const sync = () => setCompletedKeys(readCompleted());
+    const sync = () => {
+      const next = readCompleted();
+      setCompletedKeys((prev) => (setsEqual(prev, next) ? prev : next));
+    };
     const onVis = () => { if (!document.hidden) sync(); };
 
     window.addEventListener("focus", sync);
