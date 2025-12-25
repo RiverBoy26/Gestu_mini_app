@@ -52,6 +52,14 @@ const getAuthHeaders = () => {
 
 const PROGRESS_KEY = "gestu_completed_keys";
 
+const setsEqual = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+};
+
 const readCompleted = () => {
   try {
     const raw = localStorage.getItem(PROGRESS_KEY);
@@ -143,7 +151,6 @@ const Categories = () => {
     const sync = () => setCompletedKeys(readCompleted());
     const onVis = () => { if (!document.hidden) sync(); };
 
-    sync();
     window.addEventListener("focus", sync);
     document.addEventListener("visibilitychange", onVis);
 
