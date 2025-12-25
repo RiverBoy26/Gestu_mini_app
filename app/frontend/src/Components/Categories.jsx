@@ -33,6 +33,17 @@ const joinUrl = (base, path) => {
   return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 };
 
+const keysForLesson = (slug, lesson) => {
+  const keys = [];
+  if (lesson?.lesson_id != null) keys.push(String(lesson.lesson_id));
+  if (lesson?.lesson_order != null) keys.push(`${slug}:${lesson.lesson_order}`);
+  return keys;
+};
+
+const hasCompleted = (slug, lesson, completedKeys) => {
+  return keysForLesson(slug, lesson).some((k) => completedKeys.has(k));
+};
+
 const getInitData = () => window?.Telegram?.WebApp?.initData || "";
 const getAuthHeaders = () => {
   const initData = getInitData();
@@ -220,11 +231,11 @@ const Categories = () => {
     if (!prev) return true;
 
     const prevKey = lessonKey(activeSlug, prev);
-    return completedKeys.has(prevKey);
+    return hasCompleted(activeSlug, prev, completedKeys);
   };
 
   const isCompleted = (lesson) => {
-    return completedKeys.has(lessonKey(activeSlug, lesson));
+    return hasCompleted(activeSlug, lesson, completedKeys);
   };
 
   const openExercise = (lesson) => {
@@ -282,7 +293,7 @@ const Categories = () => {
 
             return (
               <div
-                key={lesson.lesson_id ?? `${activeSlug}-${lesson.lesson_order}`}
+                key={`${activeSlug}-${lesson.lesson_order}`}
                 className={`node ${unlocked ? "green" : "gray"} ${completed ? "completed" : ""}`}
                 style={{
                   top: index * 80 + "px",
