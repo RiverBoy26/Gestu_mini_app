@@ -220,3 +220,56 @@
   font-style: normal;
   font-display: swap;
 }
+
+.practice-lesson-info-row{
+  display:flex;
+  justify-content:flex-end;
+  padding: 10px 16px 0;
+}
+
+.practice-lesson-info-btn{
+  border: none;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.practice-lesson-info-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: calc(var(--tma-safe-top, 0px) + 72px) 16px 16px;
+  z-index: 999;
+}
+
+.practice-lesson-info-modal{
+  width: min(520px, 100%);
+  background: #1b1b1f;
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+}
+
+.practice-lesson-info-title{
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.practice-lesson-info-list{
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.35;
+}
+
+.practice-lesson-info-close{
+  margin-top: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+}

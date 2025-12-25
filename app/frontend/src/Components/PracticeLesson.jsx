@@ -52,6 +52,9 @@ const PracticeLesson = () => {
   const [detectedWord, setDetectedWord] = useState("");
   const [manualWord, setManualWord] = useState("");
 
+  // информация
+  const [showInfo, setShowInfo] = useState(false);
+
   // status
   const [completedKeys, setCompletedKeys] = useState(() => readCompleted());
 
@@ -186,6 +189,18 @@ const PracticeLesson = () => {
         </div>
       </header>
 
+      <div className="practice-lesson-info-row">
+        <button
+          className="practice-lesson-info-btn"
+          onClick={() => setShowInfo(true)}
+          type="button"
+          aria-label="Информирование по распознаванию"
+          title="Информирование"
+        >
+          ℹ️
+        </button>
+      </div>
+
       <div className="practice-lesson-content">
         <div className="practice-lesson-topic">
           ТЕМА: <span className="practice-lesson-topic-word">{topicWord || "—"}</span>
@@ -240,6 +255,41 @@ const PracticeLesson = () => {
             </div>
           )}
         </div>
+        {showInfo && (
+          <div
+            className="practice-lesson-info-overlay"
+            onClick={() => setShowInfo(false)}
+            role="presentation"
+          >
+            <div
+              className="practice-lesson-info-modal"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="practice-lesson-info-title">
+                Чтобы распознавание букв работало стабильно:
+              </div>
+
+              <ol className="practice-lesson-info-list">
+                <li>Свет — ровное освещение без сильных теней и засветов.</li>
+                <li>Кадр — держите всю кисть полностью в кадре, ближе к центру, примерно 30–60 см от камеры.</li>
+                <li>Фон — лучше однотонный, без лишних движений за спиной.</li>
+                <li>Поза — показывайте жест как в уроке, не перекрывайте пальцы, по возможности без перчаток/крупных аксессуаров.</li>
+                <li>Стабилизация — удерживайте жест неподвижно 1–2 секунды. Результат фиксируется после нескольких кадров.</li>
+                <li>Буквы с движением — для динамичных делайте движение плавно и в пределах кадра.</li>
+              </ol>
+
+              <button
+                className="practice-lesson-info-close"
+                onClick={() => setShowInfo(false)}
+                type="button"
+              >
+                Понятно
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* нижняя плашка статуса */}
