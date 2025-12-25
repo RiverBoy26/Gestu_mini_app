@@ -54,9 +54,15 @@ const writeCompleted = (set) => {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(Array.from(set)));
 };
 
-const lessonKey = (slug, lesson) => {
-  if (lesson?.lesson_id != null) return String(lesson.lesson_id);
-  return `${slug}:${lesson?.lesson_order ?? ""}`;
+const keysForLesson = (slug, lesson) => {
+  const keys = [];
+  if (lesson?.lesson_id != null) keys.push(String(lesson.lesson_id));
+  if (lesson?.lesson_order != null) keys.push(`${slug}:${lesson.lesson_order}`);
+  return keys;
+};
+
+const hasCompletedLesson = (slug, lesson, completedKeys) => {
+  return keysForLesson(slug, lesson).some((k) => completedKeys.has(k));
 };
 
 const Exercise = () => {
@@ -71,6 +77,12 @@ const Exercise = () => {
 
   const videoRef = useRef(null);
   const scrollRef = useRef(null);
+
+  const notify = (msg) => {
+    const tg = window?.Telegram?.WebApp;
+    if (tg?.showAlert) tg.showAlert(msg);
+    else alert(msg);
+  };
 
   // Telegram safe area + expand
   useEffect(() => {
@@ -135,7 +147,9 @@ const Exercise = () => {
 
         if (!res.ok) {
           if (res.status === 401) {
-            setLoadError("Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram.");
+            setLoadError(
+              "Нет авторизации Telegram (initData). Открой мини-апп внутри Telegram."
+            );
           } else if (res.status === 404) {
             setLoadError("Категория не найдена.");
           } else {
@@ -213,15 +227,52 @@ const Exercise = () => {
 
   const isCompleted = useMemo(() => {
     if (!currentLesson) return false;
-    return completedKeys.has(lessonKey(category, currentLesson));
+    return hasCompletedLesson(category, currentLesson, completedKeys);
   }, [completedKeys, currentLesson, category]);
+
+  // ✅ определяем "первый непройденный" — дальше него заходить нельзя (чтобы URL тоже не ломал цепочку)
+  const firstIncompleteOrder = useMemo(() => {
+    if (!lessons.length) return 1;
+    for (const l of lessons) {
+      const ord = Number(l?.lesson_order);
+      if (!ord) continue;
+      if (!hasCompletedLesson(category, l, completedKeys)) return ord;
+    }
+    return maxOrder; // всё пройдено
+  }, [lessons, completedKeys, category, maxOrder]);
+
+  const lockWarnedRef = useRef(false);
+
+  // ✅ защита от прыжка вперёд через URL
+  useEffect(() => {
+    if (loading) return;
+    if (!lessons.length) return;
+    if (!category) return;
+
+    // можно быть на любом <= firstIncompleteOrder
+    if (safeOrder > firstIncompleteOrder) {
+      if (!lockWarnedRef.current) {
+        lockWarnedRef.current = true;
+        notify("Пройдите текущий урок");
+      }
+      navigate(`/exercise/${category}/${firstIncompleteOrder}`, { replace: true });
+    } else {
+      lockWarnedRef.current = false;
+    }
+  }, [loading, lessons.length, category, safeOrder, firstIncompleteOrder, navigate]);
 
   const toggleCompleted = () => {
     if (!currentLesson) return;
-    const key = lessonKey(category, currentLesson);
+
+    const keys = keysForLesson(category, currentLesson);
+    if (!keys.length) return;
+
     const next = new Set(completedKeys);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
+
+    const already = keys.some((k) => next.has(k));
+    if (already) keys.forEach((k) => next.delete(k));
+    else keys.forEach((k) => next.add(k));
+
     setCompletedKeys(next);
     writeCompleted(next);
   };
@@ -235,6 +286,12 @@ const Exercise = () => {
   const goNext = () => {
     const next = safeOrder + 1;
     if (next > maxOrder) return;
+
+    if (!isCompleted) {
+      notify("Пройдите текущий урок");
+      return;
+    }
+
     navigate(`/exercise/${category}/${next}`);
   };
 
@@ -310,6 +367,8 @@ const Exercise = () => {
           <button className="nav-btn" onClick={goPrev} disabled={prevDisabled || !lessons.length}>
             &lt; Назад
           </button>
+
+          {/* не делаю disabled по прогрессу, чтобы можно было кликнуть и получить уведомление */}
           <button className="nav-btn" onClick={goNext} disabled={nextDisabled || !lessons.length}>
             Вперёд &gt;
           </button>
