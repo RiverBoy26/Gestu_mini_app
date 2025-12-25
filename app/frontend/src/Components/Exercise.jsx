@@ -318,7 +318,11 @@ const Exercise = () => {
         <button
           className="exercises-start-btn"
           disabled={!currentLesson}
-          onClick={() => navigate(`/practice?lesson_id=${currentLesson?.lesson_id ?? ""}`)}
+          onClick={() =>
+            navigate(
+              `/practice-lesson/${category}/${safeOrder}?lesson_id=${currentLesson?.lesson_id ?? ""}&word=${encodeURIComponent(currentLesson?.title ?? "")}`
+            )
+          }
         >
           Перейти к практике
         </button>

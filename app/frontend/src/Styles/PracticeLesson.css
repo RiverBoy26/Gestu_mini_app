@@ -1,0 +1,222 @@
+:root{
+  --tma-safe-top: 0px;
+  --tma-safe-bottom: 0px;
+  --status-h: 54px;
+}
+
+/* экран */
+.practice-lesson-screen{
+  font-family: Arial, sans-serif;
+  background-color: #8087ff;
+  width: 100vw;
+  height: var(--tg-viewport-height, 100vh); /* Telegram WebApp viewportHeight в CSS переменной :contentReference[oaicite:3]{index=3} */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-top: var(--tma-safe-top);
+}
+
+/* topbar как обычно, но с уникальными классами */
+.practice-lesson-topbar{
+  width: 100%;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.practice-lesson-menu-btn{
+  font-size: 22px;
+  background: rgb(228, 228, 228);
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.practice-lesson-logo{
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-family: "airborne", sans-serif;
+  margin: 0;
+}
+
+.practice-lesson-logo-icon img{
+  width: 50px;
+  height: auto;
+  display: block;
+}
+
+/* контент */
+.practice-lesson-content{
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px calc(var(--status-h) + 16px + var(--tma-safe-bottom)) 12px;
+  box-sizing: border-box;
+}
+
+.practice-lesson-topic{
+  width: 100%;
+  max-width: 330px;
+  background: #4d4d6b;
+  color: #fff;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+  text-align: center;
+}
+
+.practice-lesson-topic-word{
+  color: #ffd4ff;
+}
+
+.practice-lesson-back-btn{
+  width: 100%;
+  max-width: 330px;
+  background: #b8b8d1;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-family: "Comic Sans MS";
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+  transition: 0.15s;
+}
+
+.practice-lesson-back-btn:active{ transform: scale(0.98); }
+
+/* карточка камеры */
+.practice-lesson-camera-card{
+  background-color: #353b77;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 330px;
+  padding: 16px;
+  text-align: center;
+  color: white;
+  box-sizing: border-box;
+  box-shadow: 0 6px 14px rgba(0,0,0,.18);
+}
+
+.practice-lesson-video-wrap{
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.practice-lesson-video{
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1);
+}
+
+.practice-lesson-hint{
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* детект заглушка */
+.practice-lesson-detect-box{
+  margin-top: 12px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+}
+
+.practice-lesson-detect-title{
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.practice-lesson-detect-value{
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ручной ввод */
+.practice-lesson-manual{
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.practice-lesson-input{
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  outline: none;
+}
+
+.practice-lesson-input-btn{
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  cursor: pointer;
+  background: linear-gradient(145deg, #b14cf0, #ff3fcf);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
+}
+
+.practice-lesson-input-btn:active{ transform: scale(0.98); }
+
+/* нижняя плашка статуса */
+.practice-lesson-status{
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--tma-safe-bottom));
+  height: var(--status-h);
+  border: none;
+  border-radius: 18px;
+  font-size: 16px;
+  font-family: "Comic Sans MS";
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,.20);
+  transition: 0.15s;
+}
+
+.practice-lesson-status:active{ transform: scale(0.99); }
+
+.practice-lesson-status.todo{
+  background: rgba(255,255,255,0.85);
+  color: #1a1a1a;
+}
+
+.practice-lesson-status.done{
+  /* не “ядовито-зелёный”, а бирюзово-лавандовый под твой фон */
+  background: linear-gradient(145deg, #2dd4bf, #a78bfa);
+  color: #0b1020;
+}
+
+@font-face{
+  font-family: "airborne";
+  src: url("../assets/fonts/airborne.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

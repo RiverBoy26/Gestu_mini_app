@@ -17,6 +17,7 @@ export default function App() {
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/practice" element={<PracticeIRL />} />
         <Route path="/exercise/:category/:order" element={<Exercise />} />
+        <Route path="/practice-lesson/:category/:order" element={<PracticeLesson />} />
       </Routes>
     </BrowserRouter>
   );
