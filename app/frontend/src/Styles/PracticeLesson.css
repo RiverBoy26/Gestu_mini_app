@@ -233,7 +233,8 @@
 .practice-lesson-info-overlay{
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(53, 59, 119, 0.55);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -242,10 +243,9 @@
 }
 
 .practice-lesson-info-modal{
-  width: min(520px, 100%);
-  background: #1b1b1f;
-  border-radius: 18px;
-  padding: 14px 14px 12px;
+  background: linear-gradient(145deg, #5b61c9, #3f4499);
+  color: #ffffff;
+  box-shadow: 0 10px 26px rgba(0,0,0,.25);
 }
 
 .practice-lesson-info-title{
@@ -266,6 +266,12 @@
   border-radius: 14px;
   padding: 10px 12px;
   cursor: pointer;
+
+  background: linear-gradient(145deg, #ffffff, #e6e7ff);
+  color: #353b77;
+  font-weight: 700;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
 }
 
 .practice-lesson-topic-row{
