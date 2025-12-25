@@ -233,20 +233,20 @@
 .practice-lesson-info-overlay{
   position: fixed;
   inset: 0;
-  background: rgba(31, 36, 97, 0.55);
+  background: rgba(53, 59, 119, 0.55);
   backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding: calc(var(--tma-safe-top, 0px) + 72px) 16px 16px;
   z-index: 999;
-  border-radius: 14px;
 }
 
 .practice-lesson-info-modal{
-  background: linear-gradient(145deg, #5b61c9, #3f4499);
+  background: linear-gradient(145deg, #b14cf0, #ff3fcf);
   color: #ffffff;
   box-shadow: 0 10px 26px rgba(0,0,0,.25);
+  border-radius: 14px;
 }
 
 .practice-lesson-info-title{
