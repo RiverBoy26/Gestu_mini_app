@@ -6,6 +6,7 @@ import Menu from "./Components/Menu";
 import PracticeIRL from "./Components/PracticeIRL";
 import Categories from "./Components/Categories"
 import Exercise from "./Components/Exercise";
+import PracticeLesson from "./Components/PracticeLesson";
 
 export default function App() {
   return (
