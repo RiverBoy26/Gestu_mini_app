@@ -739,6 +739,235 @@ def is_letter_Z(z_traj, min_points=30):
 
     return True
 
+def get_fingers_state(xyz):
+    """
+    Возвращает список из 5 флагов:
+    [thumb, index, middle, ring, pinky], где True = палец поднят/выпрямлен.
+    Работает без handedness (лев./прав. рука) — по углам.
+    """
+
+    # Большой палец:
+    #  - по углам прямой
+    #  - и действительно "наружу" (не прижат к ладони/кулаку)
+    thumb_ext = finger_extended(xyz, 1, 2, 3, 4, thr=150)
+    thumb_out = (ndist(xyz, 4, 0) > 0.85) and (ndist(xyz, 4, 5) > 0.45)
+    thumb = thumb_ext and thumb_out
+
+    # Остальные — по углам
+    index  = finger_extended(xyz, 5, 6, 7, 8,  thr=165)
+    middle = finger_extended(xyz, 9, 10, 11, 12, thr=165)
+    ring   = finger_extended(xyz, 13, 14, 15, 16, thr=165)
+    pinky  = finger_extended(xyz, 17, 18, 19, 20, thr=165)
+
+    return [thumb, index, middle, ring, pinky]
+
+
+def is_letter_1(fingers):
+    # только указательный
+    return fingers == [False, True,  False, False, False]
+
+def is_letter_2(fingers):
+    # указательный + средний
+    return fingers == [False, True,  True,  False, False]
+
+def is_letter_3(fingers):
+    # указательный + средний + безымянный
+    return fingers == [False, True,  True,  True,  False]
+
+def is_letter_4(fingers):
+    # четыре пальца без большого
+    return fingers == [False, True,  True,  True,  True]
+
+def is_letter_5(fingers):
+    # все пять
+    return fingers == [True,  True,  True,  True,  True]
+
+def detect_digit_1_5(fingers):
+    """
+    Возвращает строку "1".."5" или None.
+    Важно: проверяем 5->1, чтобы не было ложных совпадений.
+    """
+    if is_letter_5(fingers): return "5"
+    if is_letter_4(fingers): return "4"
+    if is_letter_3(fingers): return "3"
+    if is_letter_2(fingers): return "2"
+    if is_letter_1(fingers): return "1"
+    return None
+
+# =========================
+# ЦИФРА 6 (ДВУМЯ РУКАМИ)
+# =========================
+
+PALM_FACE_RATIO = 1.15     # насколько "сильнее" Z-нормаль должна быть X (ладонь в камеру)
+PALM_TOUCH_THR  = 0.55     # порог касания: dist(thumb_tip -> palm_area) / palm_scale(palm) < thr
+
+def palm_facing_camera(xyz, ratio=PALM_FACE_RATIO):
+    """
+    True, если ладонь в камеру (внутренняя часть ладони видна).
+    Используем нормаль плоскости ладони: если |nz| доминирует над |nx| -> ладонь фронтально.
+    """
+    p0  = np.array(xyz[0])   # wrist
+    p5  = np.array(xyz[5])   # index MCP
+    p17 = np.array(xyz[17])  # pinky MCP
+    normal = np.cross(p5 - p0, p17 - p0)
+
+    nx, ny, nz = abs(normal[0]), abs(normal[1]), abs(normal[2])
+    return nz > nx * ratio
+
+def is_open_palm(xyz):
+    """
+    Открытая ладонь: все пальцы выпрямлены (как "5"),
+    + небольшая проверка "раскрытости" (чтобы не путать с плотными 'пучками').
+    """
+    thumb = finger_extended(xyz, 1, 2, 3, 4,  thr=150) and (ndist(xyz, 4, 0) > 0.75)
+    idx   = finger_extended(xyz, 5, 6, 7, 8,  thr=165)
+    mid   = finger_extended(xyz, 9,10,11,12, thr=165)
+    ring  = finger_extended(xyz,13,14,15,16, thr=165)
+    pink  = finger_extended(xyz,17,18,19,20, thr=165)
+
+    # "раскрытость" — расстояние между кончиками указательного и мизинца
+    spread_ok = ndist(xyz, 8, 20) > 0.85
+
+    return thumb and idx and mid and ring and pink and spread_ok
+
+def thumb_touches_palm(xyz_thumb_hand, xyz_palm_hand, thr=PALM_TOUCH_THR):
+    """
+    Проверяем, что tip большого (4) второй руки касается области ладони первой руки.
+    Нормализуем расстояние по palm_scale(palm_hand), чтобы не зависеть от масштаба.
+    """
+    tip = xyz_thumb_hand[4]
+
+    # точки "области ладони": запястье и основания пальцев + центр (9)
+    palm_targets = [xyz_palm_hand[i] for i in (0, 5, 9, 13, 17)]
+    scale = palm_scale(xyz_palm_hand)
+
+    dmin = min(dist_3d(tip, t) for t in palm_targets) / (scale + 1e-9)
+
+    # чтобы не ловить случайные касания кулаком — большой палец на "жестовой" руке должен быть выпрямлен
+    thumb_ext = finger_extended(xyz_thumb_hand, 1, 2, 3, 4, thr=150)
+
+    # остальные пальцы на "жестовой" руке обычно не обязаны быть прямыми — но ограничим их количество
+    others_ext = sum([
+        finger_extended(xyz_thumb_hand, 5, 6, 7, 8,  thr=165),
+        finger_extended(xyz_thumb_hand, 9,10,11,12, thr=165),
+        finger_extended(xyz_thumb_hand,13,14,15,16, thr=165),
+        finger_extended(xyz_thumb_hand,17,18,19,20, thr=165),
+    ])
+
+    return (dmin < thr) and thumb_ext and (others_ext <= 2)
+
+def is_letter_6(hand_landmarks_a, hand_landmarks_b):
+    """
+    "6": одна рука — открытая ладонь (в камеру), другая — большой палец касается ладони.
+    Работает без handedness: проверяем обе перестановки (A ладонь / B большой) и наоборот.
+    """
+    xyz_a = lms_to_xyz(hand_landmarks_a)
+    xyz_b = lms_to_xyz(hand_landmarks_b)
+
+    # Вариант 1: A = ладонь, B = большой палец
+    if is_open_palm(xyz_a) and palm_facing_camera(xyz_a) and thumb_touches_palm(xyz_b, xyz_a):
+        return True
+
+    # Вариант 2: B = ладонь, A = большой палец
+    if is_open_palm(xyz_b) and palm_facing_camera(xyz_b) and thumb_touches_palm(xyz_a, xyz_b):
+        return True
+
+    return False
+
+FINGERS_TOUCH_THR = 0.55  # ADDED: порог касания пальцев к ладони (подстройка 0.45–0.70)
+PALM_TARGET_IDS   = (0, 5, 9, 13, 17) 
+
+_TIP2FINGER = {  
+    4:  (1, 2, 3, 4),        # thumb
+    8:  (5, 6, 7, 8),        # index
+    12: (9, 10, 11, 12),     # middle
+    16: (13, 14, 15, 16),    # ring
+    20: (17, 18, 19, 20),    # pinky
+}
+
+def _min_tip_to_palm_norm(xyz_touch, tip_id, xyz_palm):  
+    """min dist(tip -> palm_targets) / palm_scale"""
+    tip = xyz_touch[tip_id]
+    scale = palm_scale(xyz_palm) + 1e-9
+    dmin = min(dist_3d(tip, xyz_palm[k]) for k in PALM_TARGET_IDS)
+    return dmin / scale
+
+def fingertips_touch_palm(xyz_touch, xyz_palm, tips,
+                          thr=FINGERS_TOUCH_THR,
+                          require_extended=True,
+                          forbid_thumb_touch=True): 
+    """
+    True, если ВСЕ указанные tips касаются области ладони.
+    require_extended: касающиеся пальцы должны быть выпрямлены (стабилизация)
+    forbid_thumb_touch: большой палец НЕ должен касаться ладони (чтобы не путать с "6")
+    """
+    # 1) касание всеми нужными кончиками
+    for tip_id in tips:
+        if _min_tip_to_palm_norm(xyz_touch, tip_id, xyz_palm) >= thr:
+            return False
+
+    # 2) касающиеся пальцы (обычно) прямые
+    if require_extended:
+        for tip_id in tips:
+            a, b, c, d = _TIP2FINGER[tip_id]
+            if not finger_extended(xyz_touch, a, b, c, d, thr=150):
+                return False
+
+    # 3) исключаем "6": большой палец НЕ касается ладони
+    if forbid_thumb_touch:
+        if _min_tip_to_palm_norm(xyz_touch, 4, xyz_palm) < thr:
+            return False
+
+    return True
+
+def is_letter_7(hand_landmarks_a, hand_landmarks_b): 
+    """7: Приложить к внутренней стороне ладони два пальца (указательный+средний)."""
+    xyz_a = lms_to_xyz(hand_landmarks_a)
+    xyz_b = lms_to_xyz(hand_landmarks_b)
+
+    if is_open_palm(xyz_a) and palm_facing_camera(xyz_a) and \
+       fingertips_touch_palm(xyz_b, xyz_a, tips=(8, 12)):
+        return True
+
+    if is_open_palm(xyz_b) and palm_facing_camera(xyz_b) and \
+       fingertips_touch_palm(xyz_a, xyz_b, tips=(8, 12)):
+        return True
+
+    return False
+
+def is_letter_8(hand_landmarks_a, hand_landmarks_b):  
+    """8: Приложить к внутренней стороне ладони три пальца другой руки (большой+указательный+средний)."""
+    xyz_a = lms_to_xyz(hand_landmarks_a)
+    xyz_b = lms_to_xyz(hand_landmarks_b)
+
+    # A = ладонь, B = пальцы (4, 8, 12)
+    if is_open_palm(xyz_a) and palm_facing_camera(xyz_a) and \
+       fingertips_touch_palm(xyz_b, xyz_a, tips=(4, 8, 12), forbid_thumb_touch=False):  
+        return True
+
+    # B = ладонь, A = пальцы (4, 8, 12)
+    if is_open_palm(xyz_b) and palm_facing_camera(xyz_b) and \
+       fingertips_touch_palm(xyz_a, xyz_b, tips=(4, 8, 12), forbid_thumb_touch=False):  
+        return True
+
+    return False
+
+def is_letter_9(hand_landmarks_a, hand_landmarks_b):  
+    """9: Приложить к внутренней стороне ладони четыре пальца (указательный+средний+безымянный+мизинец)."""
+    xyz_a = lms_to_xyz(hand_landmarks_a)
+    xyz_b = lms_to_xyz(hand_landmarks_b)
+
+    if is_open_palm(xyz_a) and palm_facing_camera(xyz_a) and \
+       fingertips_touch_palm(xyz_b, xyz_a, tips=(8, 12, 16, 20)):
+        return True
+
+    if is_open_palm(xyz_b) and palm_facing_camera(xyz_b) and \
+       fingertips_touch_palm(xyz_a, xyz_b, tips=(8, 12, 16, 20)):
+        return True
+
+    return False
+
+# Сглаживание и вывод
 class LabelSmoother:
     """Храним последние метки и берём устойчивую (по большинству)."""
     def __init__(self, maxlen: int = HIST_LEN):
@@ -942,6 +1171,13 @@ class GestureDetectorSession:
             self.yo_traj.clear()
             self.z_traj.clear()
 
+        fingers = get_fingers_state(xyz)
+        digit = detect_digit_1_5(fingers)
+        if (digit == "4" or digit == 4) and palm_is_sideways(xyz) and is_letter_V(hand_lms):
+            raw = "В"
+        elif digit is not None:
+            raw = digit
+            
         self.smoother.push(raw)
         stable, conf, votes, total = self.smoother.stable_with_confidence()
 
