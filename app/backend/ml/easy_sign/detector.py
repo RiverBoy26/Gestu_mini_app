@@ -741,20 +741,18 @@ def is_letter_Z(z_traj, min_points=30):
 
 def get_fingers_state(xyz):
     """
-    Возвращает список из 5 флагов:
-    [thumb, index, middle, ring, pinky], где True = палец поднят/выпрямлен.
-    Работает без handedness (лев./прав. рука) — по углам.
+    Возвращает [thumb, index, middle, ring, pinky] или None,
+    если xyz отсутствует/неполный.
     """
-
-    # Большой палец:
-    #  - по углам прямой
-    #  - и действительно "наружу" (не прижат к ладони/кулаку)
     if xyz is None or len(xyz) < 21:
-        thumb_ext = finger_extended(xyz, 1, 2, 3, 4, thr=150)
-        thumb_out = (ndist(xyz, 4, 0) > 0.85) and (ndist(xyz, 4, 5) > 0.45)
-        thumb = thumb_ext and thumb_out
+        return None
 
-    # Остальные — по углам
+    # Большой палец
+    thumb_ext = finger_extended(xyz, 1, 2, 3, 4, thr=150)
+    thumb_out = (ndist(xyz, 4, 0) > 0.85) and (ndist(xyz, 4, 5) > 0.45)
+    thumb = thumb_ext and thumb_out
+
+    # Остальные
     index  = finger_extended(xyz, 5, 6, 7, 8,  thr=165)
     middle = finger_extended(xyz, 9, 10, 11, 12, thr=165)
     ring   = finger_extended(xyz, 13, 14, 15, 16, thr=165)
@@ -784,10 +782,8 @@ def is_letter_5(fingers):
     return fingers == [True,  True,  True,  True,  True]
 
 def detect_digit_1_5(fingers):
-    """
-    Возвращает строку "1".."5" или None.
-    Важно: проверяем 5->1, чтобы не было ложных совпадений.
-    """
+    if not fingers:   # None или пусто
+        return None
     if is_letter_5(fingers): return "5"
     if is_letter_4(fingers): return "4"
     if is_letter_3(fingers): return "3"
@@ -1173,10 +1169,12 @@ class GestureDetectorSession:
             self.d_traj.clear()
             self.yo_traj.clear()
             self.z_traj.clear()
-        if xyz is not None:
+
+        if raw is None and xyz is not None and hand_lms is not None:
             fingers = get_fingers_state(xyz)
             digit = detect_digit_1_5(fingers)
-            if (digit == "4" or digit == 4) and palm_is_sideways(xyz) and is_letter_V(hand_lms):
+
+            if digit == "4" and palm_is_sideways(xyz) and is_letter_V(hand_lms):
                 raw = "В"
             elif digit is not None:
                 raw = digit
