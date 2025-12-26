@@ -1196,8 +1196,15 @@ class GestureDetectorSession:
                     is_7 = is_letter_7(hand_lms, other)   # ADDED
                     is_6 = is_letter_6(hand_lms, other)   # ADDED
 
-                    if is_9 or is_8 or is_7 or is_6:      # ADDED
-                        raw = "9" if is_9 else raw = "8" if is_8 else raw = "7" if is_7 else raw = "6"
+                    if is_9 or is_8 or is_7 or is_6:
+                        if is_9:      
+                            raw = "9" 
+                        elif is_8:
+                            raw = "8" 
+                        elif is_7:
+                            raw = "7"
+                        else: 
+                            raw = "6"
 
 
             if is_letter_0(hand_lms):
