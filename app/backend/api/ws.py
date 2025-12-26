@@ -1,34 +1,26 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import asyncio
 import base64
-import json
 import time
-from pathlib import Path
 from collections import deque
 import numpy as np
 import cv2
 import os
 import logging
+import concurrent.futures
 
-from app.backend.ml.easy_sign.runtime import Predictor
+from app.backend.ml.easy_sign.detector import GestureDetectorSession
 
 router = APIRouter()
 
 DEBUG_WS = os.getenv("GESTU_WS_DEBUG", "0") == "1"
+# 0 => пытаемся обрабатывать каждый кадр, который успеваем (без накопления очереди).
+INFER_EVERY_MS = int(os.getenv("GESTU_WS_INFER_EVERY_MS", "0"))
+MIN_CONF = float(os.getenv("GESTU_WS_MIN_CONF", "0.55"))
+
 logger = logging.getLogger("gesture_ws")
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-CFG_PATH = BACKEND_DIR / "ml" / "easy_sign" / "config.json"
-
-with open(CFG_PATH, "r", encoding="utf-8") as f:
-    CFG = json.load(f)
-
-CFG.setdefault("provider", "CPUExecutionProvider")
-
-predictor = Predictor(CFG)
-WINDOW_SIZE = int(CFG.get("window_size", 32))
 
 
 def decode_frame_bgr224(data_url: str) -> np.ndarray:
@@ -36,7 +28,8 @@ def decode_frame_bgr224(data_url: str) -> np.ndarray:
     img_bytes = base64.b64decode(encoded)
     img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
     if img is None:
-        raise ValueError
+        raise ValueError("cv2.imdecode returned None")
+    # на фронте уже 224x224, но оставим на всякий
     img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_LINEAR)
     return img
 
@@ -47,19 +40,17 @@ async def gesture_ws(ws: WebSocket):
 
     alive = True
 
-    infer_every_s = 0.4
-    last_infer = 0.0
-
     ping_interval_s = 10.0
     last_ping = 0.0
 
+    # очередь строго на 1 элемент => "всегда последний кадр", без накапливания лага
     q: asyncio.Queue[str] = asyncio.Queue(maxsize=1)
-    frames = deque(maxlen=WINDOW_SIZE)
 
     last_sent_word = ""
     last_sent_at = 0.0
     cooldown_s = 0.8
 
+    # небольшая стабилизация "на уровне WS" (поверх smoother в детекторе)
     last_preds = deque(maxlen=3)
 
     frames_in = 0
@@ -93,59 +84,70 @@ async def gesture_ws(ws: WebSocket):
 
     async def pinger():
         nonlocal last_ping, alive
-        while alive:
-            await asyncio.sleep(1.0)
-            now = time.monotonic()
-            if (now - last_ping) >= ping_interval_s:
-                last_ping = now
-                await ws.send_json({"type": "ping", "ts": time.time()})
+        try:
+            while alive:
+                now = time.monotonic()
+                if (now - last_ping) > ping_interval_s:
+                    last_ping = now
+                    try:
+                        await ws.send_json({"type": "ping"})
+                    except Exception:
+                        alive = False
+                        break
+                await asyncio.sleep(0.25)
+        except asyncio.CancelledError:
+            return
 
-    recv_task = asyncio.create_task(receiver())
-    ping_task = asyncio.create_task(pinger())
+    recv_task = None
+    ping_task = None
+
+    # inference в отдельном single-thread executor:
+    # так детектор (landmarker) живёт и вызывается всегда из одного потока.
+    loop = asyncio.get_running_loop()
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    detector = None
 
     try:
+        detector = await loop.run_in_executor(executor, GestureDetectorSession)
+
+        recv_task = asyncio.create_task(receiver())
+        ping_task = asyncio.create_task(pinger())
+
+        last_infer = 0.0
+        infer_every_s = max(0.0, INFER_EVERY_MS / 1000.0)
+
         while alive:
             try:
-                data_url = await asyncio.wait_for(q.get(), timeout=2.0)
+                data_url = await asyncio.wait_for(q.get(), timeout=1.0)
             except asyncio.TimeoutError:
                 continue
 
+            now = time.monotonic()
+
+            if infer_every_s > 0 and (now - last_infer) < infer_every_s:
+                continue
+            last_infer = now
+
             try:
-                frame = await asyncio.to_thread(decode_frame_bgr224, data_url)
+                frame = decode_frame_bgr224(data_url)
                 decode_ok += 1
             except Exception:
                 decode_err += 1
                 continue
 
-            frames.append(frame)
+            # timestamp_ms для MediaPipe
+            ts_ms = int(now * 1000)
 
-            now = time.monotonic()
-
-            if DEBUG_WS and (now - last_debug) > 1.0:
-                last_debug = now
-                logger.info(
-                    f"frames_in={frames_in} dropped={frames_dropped} "
-                    f"decode_ok={decode_ok} decode_err={decode_err} "
-                    f"buf={len(frames)}/{WINDOW_SIZE} infer={infer_n}"
-                )
-
-            if len(frames) < WINDOW_SIZE:
-                continue
-            if (now - last_infer) < infer_every_s:
-                continue
-
-            last_infer = now
-
-            pred = await asyncio.to_thread(predictor.predict, list(frames))
+            out = await loop.run_in_executor(executor, detector.process_frame_bgr, frame, ts_ms)
             infer_n += 1
 
-            if not pred:
+            word = out.get("stable") or ""
+            conf = float(out.get("confidence") or 0.0)
+            raw = out.get("raw")
+
+            if not word:
                 continue
-
-            word = pred["labels"].get(0, "")
-            conf = float(pred["confidence"].get(0, 0.0))
-
-            if conf < 0.55:
+            if conf < MIN_CONF:
                 continue
 
             last_preds.append(word)
@@ -158,23 +160,39 @@ async def gesture_ws(ws: WebSocket):
             last_sent_word = word
             last_sent_at = now
 
-            if DEBUG_WS:
-                logger.info(f"DETECTED word={word} conf={conf:.3f}")
+            payload = {"word": word, "confidence": conf, "raw": raw}
+            try:
+                await ws.send_json(payload)
+            except WebSocketDisconnect:
+                alive = False
+                break
 
-            await ws.send_json({"word": word, "confidence": conf})
-
-            tail = list(frames)[-8:]
-            frames.clear()
-            frames.extend(tail)
-            last_preds.clear()
+            if DEBUG_WS and (now - last_debug) > 1.0:
+                last_debug = now
+                logger.info(
+                    f"frames_in={frames_in} dropped={frames_dropped} "
+                    f"decode_ok={decode_ok} decode_err={decode_err} "
+                    f"infer={infer_n} last={word}:{conf:.2f}"
+                )
 
     except WebSocketDisconnect:
         pass
     finally:
         alive = False
-        recv_task.cancel()
-        ping_task.cancel()
+
+        if recv_task is not None:
+            recv_task.cancel()
+        if ping_task is not None:
+            ping_task.cancel()
+        if recv_task is not None or ping_task is not None:
+            try:
+                await asyncio.gather(*(t for t in [recv_task, ping_task] if t is not None))
+            except Exception:
+                pass
+
         try:
-            await asyncio.gather(recv_task, ping_task)
+            if detector is not None:
+                await loop.run_in_executor(executor, detector.close)
         except Exception:
             pass
+        executor.shutdown(wait=False)
