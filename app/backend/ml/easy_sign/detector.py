@@ -469,7 +469,7 @@ def update_YO_traj(yo_traj, xyz):
     ang = math.atan2((y2 - y1), (x2 - x1))  # [-pi..pi]
     yo_traj.append(ang)
 
-def is_letter_YO(yo_traj, min_points=28, min_total_turn_rad=math.pi * 1.05):
+def is_letter_YO(yo_traj, min_points=28, min_total_turn_rad=math.pi * 1.2):
     """
     Динамика для "Ё": пока держим "туннель", суммарная "закрутка" угла
     должна превысить порог (по умолчанию ~189°).
@@ -1116,6 +1116,8 @@ class GestureDetectorSession:
         result = self._landmarker.detect_for_video(mp_image, ts_ms)
 
         raw = None
+        xyz = None
+        hand_lms = None
 
         if result.hand_landmarks:
             # Для динамики нам нужен стабильный "один и тот же" источник.
