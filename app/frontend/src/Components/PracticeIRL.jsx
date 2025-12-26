@@ -8,7 +8,8 @@ const PracticeIRL = () => {
   const [cameraError, setCameraError] = useState(null);
 
   const [gesture, setGesture] = useState(null);
-  const [confidence, setConfidence] = useState(null);
+
+  const [lastWords, setLastWords] = useState([]);
 
   const [wsStatus, setWsStatus] = useState("connecting");
   const [wsStatusText, setWsStatusText] = useState("Пытаемся установить соединение...");
@@ -24,7 +25,7 @@ const PracticeIRL = () => {
   const shouldReconnectRef = useRef(true);
   const reconnectTimerRef = useRef(null);
   const reconnectAttemptRef = useRef(0);
-  
+
   const pendingReconnectRef = useRef(false);
 
   const wsSeqRef = useRef(0);
@@ -56,104 +57,127 @@ const PracticeIRL = () => {
     }
   }, []);
 
-  const connectWs = useCallback((force = false) => {
-    if (document.visibilityState === "hidden") return;
-
-    cleanupReconnectTimer();
-
-    const existing = wsRef.current;
-
-    if (!force && existing &&
-        (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
-
-    if (existing && existing.readyState !== WebSocket.CLOSED) {
-      try {
-        existing.onopen = existing.onmessage = existing.onerror = existing.onclose = null;
-      } catch {}
-      try {
-        existing.close(1000, "replaced");
-      } catch {}
-      wsRef.current = null;
-    }
-
-    if (connectingRef.current) return;
-    connectingRef.current = true;
-
-    const seq = ++wsSeqRef.current;
-    activeSeqRef.current = seq;
-
-    const url = getWsUrl();
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      if (activeSeqRef.current !== seq) return;
-      connectingRef.current = false;
-      console.log("WS connected");
-      reconnectAttemptRef.current = 0;
-      setWsStatus("connected");
-      setWsStatusText("Подключено");
-    };
-
-    ws.onmessage = (event) => {
-      if (activeSeqRef.current !== seq) return;
-      try {
-        const data = JSON.parse(event.data);
-        if (data?.type === "ping") return;
-        if (typeof data?.word === "string") setGesture(data.word);
-        if (typeof data?.confidence === "number") setConfidence(data.confidence);
-      } catch {}
-    };
-
-    ws.onerror = (e) => {
-      if (activeSeqRef.current !== seq) return;
-      connectingRef.current = false;
-      console.log("WS error", e);
-      setWsDebug((d) => ({ ...d, lastErrorAt: Date.now() }));
-    };
-
-    ws.onclose = (e) => {
-      if (activeSeqRef.current !== seq) return;
-
-      connectingRef.current = false;
-      console.log("WS closed", { code: e.code, reason: e.reason, wasClean: e.wasClean });
-
-      wsRef.current = null;
-
-      setWsStatus("disconnected");
-      setWsStatusText("Нет соединения");
-      setWsDebug((d) => ({
-        ...d,
-        lastCloseCode: e.code,
-        lastCloseReason: e.reason,
-        lastCloseWasClean: e.wasClean,
-        lastCloseAt: Date.now(),
-      }));
-
-      if (!shouldReconnectRef.current) return;
+  const connectWs = useCallback(
+    (force = false) => {
       if (document.visibilityState === "hidden") return;
 
-      if (pendingReconnectRef.current) {
-        pendingReconnectRef.current = false;
-        reconnectAttemptRef.current = 0;
-        connectWs(false);
+      cleanupReconnectTimer();
+
+      const existing = wsRef.current;
+
+      if (
+        !force &&
+        existing &&
+        (existing.readyState === WebSocket.OPEN ||
+          existing.readyState === WebSocket.CONNECTING)
+      ) {
         return;
       }
 
-      const attempt = Math.min(reconnectAttemptRef.current, 5);
-      const delay = Math.min(500 * Math.pow(2, attempt), 10000);
+      if (existing && existing.readyState !== WebSocket.CLOSED) {
+        try {
+          existing.onopen =
+            existing.onmessage =
+            existing.onerror =
+            existing.onclose =
+              null;
+        } catch {}
+        try {
+          existing.close(1000, "replaced");
+        } catch {}
+        wsRef.current = null;
+      }
 
-      setWsStatus("connecting");
-      setWsStatusText("Соединяем...");
+      if (connectingRef.current) return;
+      connectingRef.current = true;
 
-      reconnectTimerRef.current = setTimeout(() => {
-        reconnectAttemptRef.current += 1;
-        connectWs(false);
-      }, delay);
-    };
-  }, [closeWs]);
+      const seq = ++wsSeqRef.current;
+      activeSeqRef.current = seq;
+
+      const url = getWsUrl();
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (activeSeqRef.current !== seq) return;
+        connectingRef.current = false;
+        console.log("WS connected");
+        reconnectAttemptRef.current = 0;
+        setWsStatus("connected");
+        setWsStatusText("Подключено");
+      };
+
+      ws.onmessage = (event) => {
+        if (activeSeqRef.current !== seq) return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.type === "ping") return;
+
+          if (typeof data?.word === "string") {
+            const w = data.word.trim();
+            if (!w) return;
+
+            setGesture(w);
+
+            setLastWords((prev) => {
+              const arr = Array.isArray(prev) ? prev : [];
+              const last = arr[arr.length - 1];
+              if (last === w) return arr;
+              return [...arr, w].slice(-5);
+            });
+          }
+        } catch {}
+      };
+
+      ws.onerror = (e) => {
+        if (activeSeqRef.current !== seq) return;
+        connectingRef.current = false;
+        console.log("WS error", e);
+        setWsDebug((d) => ({ ...d, lastErrorAt: Date.now() }));
+      };
+
+      ws.onclose = (e) => {
+        if (activeSeqRef.current !== seq) return;
+
+        connectingRef.current = false;
+        console.log("WS closed", { code: e.code, reason: e.reason, wasClean: e.wasClean });
+
+        wsRef.current = null;
+
+        setWsStatus("disconnected");
+        setWsStatusText("Нет соединения");
+        setWsDebug((d) => ({
+          ...d,
+          lastCloseCode: e.code,
+          lastCloseReason: e.reason,
+          lastCloseWasClean: e.wasClean,
+          lastCloseAt: Date.now(),
+        }));
+
+        if (!shouldReconnectRef.current) return;
+        if (document.visibilityState === "hidden") return;
+
+        if (pendingReconnectRef.current) {
+          pendingReconnectRef.current = false;
+          reconnectAttemptRef.current = 0;
+          connectWs(false);
+          return;
+        }
+
+        const attempt = Math.min(reconnectAttemptRef.current, 5);
+        const delay = Math.min(500 * Math.pow(2, attempt), 10000);
+
+        setWsStatus("connecting");
+        setWsStatusText("Соединяем...");
+
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectAttemptRef.current += 1;
+          connectWs(false);
+        }, delay);
+      };
+    },
+    [closeWs]
+  );
 
   const reconnectNow = useCallback(() => {
     const ws = wsRef.current;
@@ -370,14 +394,6 @@ const PracticeIRL = () => {
           </button>
         </div>
 
-        {/* Debug
-        {wsDebug?.lastCloseCode && (
-          <div style={{ marginTop: "6px", fontSize: "12px", opacity: 0.6 }}>
-            WS close: {wsDebug.lastCloseCode} {wsDebug.lastCloseReason ? `(${wsDebug.lastCloseReason})` : ""}
-          </div>
-        )} */}
-
-        {/* Result */}
         {gesture && (
           <div
             style={{
@@ -388,11 +404,27 @@ const PracticeIRL = () => {
             }}
           >
             {gesture}
-            {confidence !== null && (
-              <span style={{ fontSize: "14px", marginLeft: "8px", opacity: 0.6 }}>
-                {(confidence * 100).toFixed(1)}%
-              </span>
-            )}
+          </div>
+        )}
+
+        {lastWords.length > 0 && (
+          <div style={{ marginTop: "12px", fontSize: "14px", opacity: 0.85 }}>
+            <div style={{ fontWeight: 600, marginBottom: "6px" }}>Последние 5 слов:</div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {lastWords.map((w, i) => (
+                <span
+                  key={`${w}-${i}`}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "10px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.06)",
+                  }}
+                >
+                  {w}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>
