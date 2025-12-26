@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./../Styles/PracticeLesson.css";
 import logotype from "./../assets/logo.svg";
@@ -48,7 +48,10 @@ const PracticeLesson = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  // "детект" заглушка
+  // canvas для отправки 224x224
+  const canvasRef = useRef(null);
+
+  // детект (реальный, из WS)
   const [detectedWord, setDetectedWord] = useState("");
   const [manualWord, setManualWord] = useState("");
 
@@ -93,7 +96,7 @@ const PracticeLesson = () => {
 
     try {
       tg.ready?.();
-      tg.expand?.(); // expand() и --tg-viewport-height описаны в доках Telegram WebApp :contentReference[oaicite:1]{index=1}
+      tg.expand?.();
     } catch {}
 
     const applyInsets = () => {
@@ -114,7 +117,7 @@ const PracticeLesson = () => {
     };
   }, []);
 
-  // start camera (как в PracticeIRL, но без WS) :contentReference[oaicite:2]{index=2}
+  // start camera
   useEffect(() => {
     let cancelled = false;
 
@@ -169,6 +172,230 @@ const PracticeLesson = () => {
     };
   }, [hasCamera]);
 
+  const [wsStatus, setWsStatus] = useState("connecting");
+  const [wsStatusText, setWsStatusText] = useState("Соединяем…");
+
+  const wsRef = useRef(null);
+  const connectingRef = useRef(false);
+  const shouldReconnectRef = useRef(true);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptRef = useRef(0);
+  const pendingReconnectRef = useRef(false);
+
+  const wsSeqRef = useRef(0);
+  const activeSeqRef = useRef(0);
+
+  const getWsUrl = () => {
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    return `${proto}://${window.location.host}/ws/gesture`;
+  };
+
+  const cleanupReconnectTimer = () => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  };
+
+  const closeWs = useCallback((code = 1000, reason = "client_close") => {
+    cleanupReconnectTimer();
+    const ws = wsRef.current;
+    if (ws) {
+      try {
+        ws.close(code, reason);
+      } catch {}
+      wsRef.current = null;
+    }
+  }, []);
+
+  const connectWs = useCallback(
+    (force = false) => {
+      if (document.visibilityState === "hidden") return;
+
+      cleanupReconnectTimer();
+
+      const existing = wsRef.current;
+      if (
+        !force &&
+        existing &&
+        (existing.readyState === WebSocket.OPEN ||
+          existing.readyState === WebSocket.CONNECTING)
+      ) {
+        return;
+      }
+
+      if (existing && existing.readyState !== WebSocket.CLOSED) {
+        try {
+          existing.onopen =
+            existing.onmessage =
+            existing.onerror =
+            existing.onclose =
+              null;
+        } catch {}
+        try {
+          existing.close(1000, "replaced");
+        } catch {}
+        wsRef.current = null;
+      }
+
+      if (connectingRef.current) return;
+      connectingRef.current = true;
+
+      const seq = ++wsSeqRef.current;
+      activeSeqRef.current = seq;
+
+      const ws = new WebSocket(getWsUrl());
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (activeSeqRef.current !== seq) return;
+        connectingRef.current = false;
+        reconnectAttemptRef.current = 0;
+        setWsStatus("connected");
+        setWsStatusText("Подключено");
+      };
+
+      ws.onmessage = (event) => {
+        if (activeSeqRef.current !== seq) return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.type === "ping") return;
+
+          if (typeof data?.word === "string") {
+            const w = data.word.trim();
+            if (!w) return;
+            setDetectedWord(w);
+          }
+        } catch {}
+      };
+
+      ws.onerror = () => {
+        if (activeSeqRef.current !== seq) return;
+        connectingRef.current = false;
+      };
+
+      ws.onclose = () => {
+        if (activeSeqRef.current !== seq) return;
+
+        connectingRef.current = false;
+        wsRef.current = null;
+
+        setWsStatus("disconnected");
+        setWsStatusText("Нет соединения");
+
+        if (!shouldReconnectRef.current) return;
+        if (document.visibilityState === "hidden") return;
+
+        if (pendingReconnectRef.current) {
+          pendingReconnectRef.current = false;
+          reconnectAttemptRef.current = 0;
+          connectWs(false);
+          return;
+        }
+
+        const attempt = Math.min(reconnectAttemptRef.current, 5);
+        const delay = Math.min(500 * Math.pow(2, attempt), 10000);
+
+        setWsStatus("connecting");
+        setWsStatusText("Соединяем…");
+
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectAttemptRef.current += 1;
+          connectWs(false);
+        }, delay);
+      };
+    },
+    [closeWs]
+  );
+
+  const reconnectNow = useCallback(() => {
+    const ws = wsRef.current;
+
+    pendingReconnectRef.current = true;
+    shouldReconnectRef.current = true;
+    reconnectAttemptRef.current = 0;
+
+    if (ws && ws.readyState !== WebSocket.CLOSED) {
+      ws.close(1000, "manual_reconnect");
+      return;
+    }
+
+    connectWs(true);
+  }, [connectWs]);
+
+  useEffect(() => {
+    shouldReconnectRef.current = true;
+    connectWs(false);
+
+    const onVis = () => {
+      if (document.visibilityState === "hidden") {
+        shouldReconnectRef.current = false;
+        setWsStatus("disconnected");
+        setWsStatusText("Пауза (вкладка скрыта)");
+        closeWs(1001, "tab_hidden");
+      } else {
+        shouldReconnectRef.current = true;
+        reconnectNow();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      shouldReconnectRef.current = false;
+      closeWs(1000, "unmount");
+    };
+  }, [connectWs, closeWs, reconnectNow]);
+
+  // отправка кадров в WS
+  useEffect(() => {
+    if (!hasCamera) return;
+    if (!videoRef.current) return;
+
+    if (!canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    let rafId;
+    let lastSent = 0;
+
+    const sendFrame = (time) => {
+      rafId = requestAnimationFrame(sendFrame);
+
+      if (document.visibilityState === "hidden") return;
+
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const SEND_INTERVAL_MS = 66;
+      if (time - lastSent < SEND_INTERVAL_MS) return;
+
+      if (ws.bufferedAmount > 1_000_000) return;
+      if (video.readyState < 2) return;
+
+      lastSent = time;
+
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+
+      const side = Math.min(vw, vh);
+      const sx = (vw - side) / 2;
+      const sy = (vh - side) / 2;
+
+
+      ctx.drawImage(video, sx, sy, side, side, 0, 0, 224, 224);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+
+      ws.send(JSON.stringify({ type: "frame", data: dataUrl }));
+    };
+
+    rafId = requestAnimationFrame(sendFrame);
+    return () => cancelAnimationFrame(rafId);
+  }, [hasCamera]);
+
   const openMenu = () => navigate("/menu");
   const backToLesson = () => navigate(`/exercise/${category}/${order}`);
 
@@ -219,6 +446,12 @@ const PracticeLesson = () => {
               muted
               className="practice-lesson-video"
             />
+            <canvas
+              ref={canvasRef}
+              width={224}
+              height={224}
+              style={{ display: "none" }}
+            />
           </div>
 
           {!hasCamera && !cameraError && (
@@ -230,24 +463,17 @@ const PracticeLesson = () => {
             </div>
           )}
 
+          <div className="practice-lesson-hint" style={{ opacity: 0.85 }}>
+            {wsStatusText}
+          </div>
+
           <div className="practice-lesson-detect-box">
-            <div className="practice-lesson-detect-title">Слова после детекции (заглушка)</div>
+            <div className="practice-lesson-detect-title">Слова после детекции</div>
             <div className="practice-lesson-detect-value">
               {detectedWord ? detectedWord : "—"}
             </div>
           </div>
 
-          <form className="practice-lesson-manual" onSubmit={onSubmitManual}>
-            <input
-              className="practice-lesson-input"
-              value={manualWord}
-              onChange={(e) => setManualWord(e.target.value)}
-              placeholder="Введи слово для теста…"
-            />
-            <button className="practice-lesson-input-btn" type="submit">
-              Показать
-            </button>
-          </form>
 
           {detectedWord && (
             <div className={`practice-lesson-compare ${isMatch ? "ok" : "fail"}`}>
