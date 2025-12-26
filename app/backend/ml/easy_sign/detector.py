@@ -29,6 +29,18 @@ HIST_MIN_VOTES = 4
 
 DEBUG = False
 
+def angle2d(a, b, c):
+    """Угол ABC в градусах (в точке b) по 2D координатам."""
+    bax, bay = a[0] - b[0], a[1] - b[1]
+    bcx, bcy = c[0] - b[0], c[1] - b[1]
+    ab = math.hypot(bax, bay)
+    cb = math.hypot(bcx, bcy)
+    if ab < 1e-6 or cb < 1e-6:
+        return 180.0
+    cosv = (bax * bcx + bay * bcy) / (ab * cb)
+    cosv = max(-1.0, min(1.0, cosv))
+    return math.degrees(math.acos(cosv))
+
 def angle_between(v1, v2):
     dot = np.dot(v1, v2)
     n1 = np.linalg.norm(v1) + 1e-9
@@ -964,6 +976,54 @@ def is_letter_9(hand_landmarks_a, hand_landmarks_b):
 
     return False
 
+def is_0_pose(
+    xyz,
+    touch_thr=0.33,            # 4-8 близко (кольцо)
+    idx_pip_max=150,           # чем меньше — тем сильнее сгиб в PIP
+    idx_dip_max=165,           # сгиб в DIP
+    idx_tip_mcp_max=1.10,      # tip(8) ближе к mcp(5) => палец реально скруглён
+    th_ip_max=165,             # сгиб в IP большого
+    th_tip_mcp_max=1.05,       # tip(4) ближе к mcp(2) => большой скруглён
+    mid_thr=150, ring_thr=145, pink_thr=140,  # прямые остальные
+    together_thr=0.65,
+    wide_thr=0.95
+):
+    # 1) Кольцо (ОК)
+    if ndist(xyz, 4, 8) >= touch_thr:
+        return False
+
+    # 2) Указательный "строго скруглён": углы + tip ближе к основанию
+    idx_pip = angle2d(xyz[5], xyz[6], xyz[7])   # угол в PIP (6)
+    idx_dip = angle2d(xyz[6], xyz[7], xyz[8])   # угол в DIP (7)
+    idx_round = (idx_pip < idx_pip_max) and (idx_dip < idx_dip_max) and (ndist(xyz, 8, 5) < idx_tip_mcp_max)
+    if not idx_round:
+        return False
+
+    # 3) Большой "строго скруглён": угол в IP + tip ближе к основанию
+    th_ip = angle2d(xyz[2], xyz[3], xyz[4])     # угол в IP (3)
+    th_round = (th_ip < th_ip_max) and (ndist(xyz, 4, 2) < th_tip_mcp_max)
+    if not th_round:
+        return False
+
+    # 4) Остальные пальцы выпрямлены
+    mid_ext  = finger_extended(xyz,  9, 10, 11, 12, thr=mid_thr)
+    ring_ext = finger_extended(xyz, 13, 14, 15, 16, thr=ring_thr)
+    pink_ext = finger_extended(xyz, 17, 18, 19, 20, thr=pink_thr)
+    if not (mid_ext and ring_ext and pink_ext):
+        return False
+
+    # 5) Чтобы не путать с "Кошка": пальцы "собраны", не растопырены
+    together = (
+        ndist(xyz, 12, 16) < together_thr and
+        ndist(xyz, 16, 20) < together_thr and
+        ndist(xyz, 12, 20) < wide_thr
+    )
+    return together
+
+def is_letter_0(hand_lms):
+    xyz = lms_to_xyz(hand_lms)
+    return is_0_pose(xyz)
+
 # Сглаживание и вывод
 class LabelSmoother:
     """Храним последние метки и берём устойчивую (по большинству)."""
@@ -1120,7 +1180,28 @@ class GestureDetectorSession:
             # Для динамики нам нужен стабильный "один и тот же" источник.
             # Чтобы не усложнять (лев/прав рука), берём ПЕРВУЮ руку.
             hand_lms = result.hand_landmarks[0]
-            xyz = lms_to_xyz(hand_lms)
+            
+            hands = list(result.hand_landmarks)          # CHANGED: фиксируем список рук на кадр
+            detected_label = None
+            for hand_lms in hands:
+                xyz = lms_to_xyz(hand_lms)
+
+                other = None                              # ADDED
+                if len(hands) == 2:                       # ADDED
+                    h0, h1 = hands
+                    other = h1 if hand_lms is h0 else h0
+                if other is not None:                     # ADDED
+                    is_9 = is_letter_9(hand_lms, other)   # ADDED
+                    is_8 = is_letter_8(hand_lms, other)   # ADDED
+                    is_7 = is_letter_7(hand_lms, other)   # ADDED
+                    is_6 = is_letter_6(hand_lms, other)   # ADDED
+
+                    if is_9 or is_8 or is_7 or is_6:      # ADDED
+                        raw = "9" if is_9 else raw = "8" if is_8 else raw = "7" if is_7 else raw = "6"
+
+
+            if is_letter_0(hand_lms):
+                raw = "0"
 
             # --- ДИНАМИЧЕСКАЯ "Д" ---
             if is_D_pose(xyz):
