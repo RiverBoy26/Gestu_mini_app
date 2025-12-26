@@ -1177,83 +1177,83 @@ class GestureDetectorSession:
         hand_lms = None
 
         if result.hand_landmarks:
-            # Для динамики нам нужен стабильный "один и тот же" источник.
-            # Чтобы не усложнять (лев/прав рука), берём ПЕРВУЮ руку.
-            hand_lms = result.hand_landmarks[0]
-            
-            hands = list(result.hand_landmarks)          # CHANGED: фиксируем список рук на кадр
-            detected_label = None
-            for hand_lms in hands:
-                xyz = lms_to_xyz(hand_lms)
+            hands = list(result.hand_landmarks)
 
-                other = None                              # ADDED
-                if len(hands) == 2:                       # ADDED
-                    h0, h1 = hands
-                    other = h1 if hand_lms is h0 else h0
-                if other is not None:                     # ADDED
-                    is_9 = is_letter_9(hand_lms, other)   # ADDED
-                    is_8 = is_letter_8(hand_lms, other)   # ADDED
-                    is_7 = is_letter_7(hand_lms, other)   # ADDED
-                    is_6 = is_letter_6(hand_lms, other)   # ADDED
+            # основная рука для "одноручных" жестов/динамики
+            hand_lms = hands[0]
+            xyz = lms_to_xyz(hand_lms)
 
-                    if is_9 or is_8 or is_7 or is_6:
-                        if is_9:      
-                            raw = "9" 
-                        elif is_8:
-                            raw = "8" 
-                        elif is_7:
-                            raw = "7"
-                        else: 
-                            raw = "6"
-
-
-            if is_letter_0(hand_lms):
-                raw = "0"
-
-            # --- ДИНАМИЧЕСКАЯ "Д" ---
-            if is_D_pose(xyz):
-                update_D_traj(self.d_traj, xyz)
-                if is_letter_D(self.d_traj):
-                    raw = "Д"
+            # --- 6-9 (ДВЕ РУКИ) ---
+            # важно: порядок 9->8->7->6, потому что при 4 пальцах на ладони условие "7" тоже может быть истинным
+            if len(hands) >= 2:
+                h0, h1 = hands[0], hands[1]
+                if is_letter_9(h0, h1):
+                    raw = "9"
+                elif is_letter_8(h0, h1):
+                    raw = "8"
+                elif is_letter_7(h0, h1):
+                    raw = "7"
+                elif is_letter_6(h0, h1):
+                    raw = "6"
+                else:
+                    raw = None
             else:
-                self.d_traj.clear()
+                raw = None
 
-            # --- ДИНАМИЧЕСКАЯ "Ё" ---
+            # если уже нашли 6-9 — дальше не даём коду перезаписать raw
             if raw is None:
-                if is_YO_pose(xyz):
-                    update_YO_traj(self.yo_traj, xyz)
-                    if is_letter_YO(self.yo_traj):
-                        raw = "Ё"
-                else:
-                    self.yo_traj.clear()
+                # 0
+                if is_letter_0(hand_lms):
+                    raw = "0"
 
-            # --- ДИНАМИЧЕСКАЯ "З" ---
-            if raw is None:
-                if is_Z_pose(xyz):
-                    update_Z_traj(self.z_traj, xyz, track_point=8)
-                    if is_letter_Z(self.z_traj):
-                        raw = "З"
-                else:
-                    self.z_traj.clear()
+                # --- ДИНАМИЧЕСКАЯ "Д" ---
+                if raw is None:
+                    if is_D_pose(xyz):
+                        update_D_traj(self.d_traj, xyz)
+                        if is_letter_D(self.d_traj):
+                            raw = "Д"
+                    else:
+                        self.d_traj.clear()
 
-            # --- СТАТИЧЕСКИЕ БУКВЫ ---
-            if raw is None:
-                if is_letter_G(hand_lms):
-                    raw = "Г"
-                elif is_letter_V(hand_lms):
-                    raw = "В"
-                elif is_letter_B(hand_lms):
-                    raw = "Б"
-                elif is_letter_A(hand_lms):
-                    raw = "А"
-                elif is_letter_E(hand_lms):
-                    raw = "Е"
+                # --- ДИНАМИЧЕСКАЯ "Ё" ---
+                if raw is None:
+                    if is_YO_pose(xyz):
+                        update_YO_traj(self.yo_traj, xyz)
+                        if is_letter_YO(self.yo_traj):
+                            raw = "Ё"
+                    else:
+                        self.yo_traj.clear()
 
-                # "Ж" может перекрываться — пусть имеет приоритет
-                if is_letter_ZH(hand_lms):
-                    raw = "Ж"
+                # --- ДИНАМИЧЕСКАЯ "З" ---
+                if raw is None:
+                    if is_Z_pose(xyz):
+                        update_Z_traj(self.z_traj, xyz, track_point=8)
+                        if is_letter_Z(self.z_traj):
+                            raw = "З"
+                    else:
+                        self.z_traj.clear()
+
+                # --- СТАТИЧЕСКИЕ БУКВЫ ---
+                if raw is None:
+                    if is_letter_G(hand_lms):
+                        raw = "Г"
+                    elif is_letter_V(hand_lms):
+                        raw = "В"
+                    elif is_letter_B(hand_lms):
+                        raw = "Б"
+                    elif is_letter_A(hand_lms):
+                        raw = "А"
+                    elif is_letter_E(hand_lms):
+                        raw = "Е"
+
+                    # "Ж" приоритетнее
+                    if is_letter_ZH(hand_lms):
+                        raw = "Ж"
+
         else:
-            # если руки нет — обнуляем динамику, чтобы не было "долётов" после пропадания
+            raw = None
+            xyz = None
+            hand_lms = None
             self.d_traj.clear()
             self.yo_traj.clear()
             self.z_traj.clear()
