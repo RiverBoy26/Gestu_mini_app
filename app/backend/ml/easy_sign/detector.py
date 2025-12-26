@@ -749,9 +749,10 @@ def get_fingers_state(xyz):
     # Большой палец:
     #  - по углам прямой
     #  - и действительно "наружу" (не прижат к ладони/кулаку)
-    thumb_ext = finger_extended(xyz, 1, 2, 3, 4, thr=150)
-    thumb_out = (ndist(xyz, 4, 0) > 0.85) and (ndist(xyz, 4, 5) > 0.45)
-    thumb = thumb_ext and thumb_out
+    if xyz is None or len(xyz) < 21:
+        thumb_ext = finger_extended(xyz, 1, 2, 3, 4, thr=150)
+        thumb_out = (ndist(xyz, 4, 0) > 0.85) and (ndist(xyz, 4, 5) > 0.45)
+        thumb = thumb_ext and thumb_out
 
     # Остальные — по углам
     index  = finger_extended(xyz, 5, 6, 7, 8,  thr=165)
@@ -1172,13 +1173,13 @@ class GestureDetectorSession:
             self.d_traj.clear()
             self.yo_traj.clear()
             self.z_traj.clear()
-
-        fingers = get_fingers_state(xyz)
-        digit = detect_digit_1_5(fingers)
-        if (digit == "4" or digit == 4) and palm_is_sideways(xyz) and is_letter_V(hand_lms):
-            raw = "В"
-        elif digit is not None:
-            raw = digit
+        if xyz is not None:
+            fingers = get_fingers_state(xyz)
+            digit = detect_digit_1_5(fingers)
+            if (digit == "4" or digit == 4) and palm_is_sideways(xyz) and is_letter_V(hand_lms):
+                raw = "В"
+            elif digit is not None:
+                raw = digit
             
         self.smoother.push(raw)
         stable, conf, votes, total = self.smoother.stable_with_confidence()
