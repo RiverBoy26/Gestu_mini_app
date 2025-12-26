@@ -1024,6 +1024,106 @@ def is_letter_0(hand_lms):
     xyz = lms_to_xyz(hand_lms)
     return is_0_pose(xyz)
 
+def is_CAT_pose(xyz):
+    """
+    КОШКА (1 рука): щепоть (4-8) + НЕ "0".
+    Важно: используем ndist (нормировка по размеру ладони), чтобы не зависеть от масштаба.
+    """
+
+    # 1) щепоть: 4-8 должны быть заметно ближе, чем "типичные" расстояния рядом
+    pinch = ndist(xyz, 4, 8)
+
+    ref = min(
+        ndist(xyz, 8, 12),  # index_tip -> middle_tip
+        ndist(xyz, 4, 12),  # thumb_tip -> middle_tip
+        ndist(xyz, 8, 5),   # index_tip -> index_mcp
+        ndist(xyz, 4, 2),   # thumb_tip -> thumb_mcp-ish
+    )
+
+    if not (pinch < 0.55 * ref):
+        return False
+
+    # 2) анти-"0": если средний/безымянный/мизинец прямые — это скорее 0/ОК, а не кошка
+    mid_ext  = finger_extended(xyz,  9, 10, 11, 12, thr=165)
+    ring_ext = finger_extended(xyz, 13, 14, 15, 16, thr=165)
+    pink_ext = finger_extended(xyz, 17, 18, 19, 20, thr=165)
+    if mid_ext and ring_ext and pink_ext:
+        return False
+
+    return True
+
+
+def update_CAT_traj(traj, xyz):
+    """
+    Трекаем центр щепоти + масштаб (wrist->middle_mcp) для нормировки движения.
+    """
+    x = 0.5 * (xyz[4][0] + xyz[8][0])
+    y = 0.5 * (xyz[4][1] + xyz[8][1])
+    s = _hand_scale2d(xyz)  # уже +1e-6 внутри
+    traj.append((x, y, s))
+
+
+def is_gesture_CAT(traj, min_points=6):
+    """
+    Динамика "усик": короткий горизонтальный штрих влево ИЛИ вправо,
+    устойчивый по направлению и без сильных зигзагов.
+    """
+    n = len(traj)
+    if n < min_points:
+        return False
+
+    pts = list(traj)
+
+    # усредняем начало/конец для устойчивости
+    k = max(2, min(5, n // 3))
+    x0 = sum(p[0] for p in pts[:k]) / k
+    y0 = sum(p[1] for p in pts[:k]) / k
+    x1 = sum(p[0] for p in pts[-k:]) / k
+    y1 = sum(p[1] for p in pts[-k:]) / k
+
+    # медианный масштаб
+    ss = sorted(p[2] for p in pts)
+    s = ss[n // 2]
+
+    dx = x1 - x0
+    dy = y1 - y0
+    if abs(dx) < 1e-6:
+        return False
+
+    dir_sign = 1 if dx > 0 else -1
+
+    # размах по bbox
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    x_range = (max(xs) - min(xs)) / s
+    y_range = (max(ys) - min(ys)) / s
+
+    # 1) движение должно быть заметным, но НЕ огромным (делаем мягче, чем было)
+    moved_enough = (abs(dx) / s) > 0.22 or x_range > 0.28
+
+    # 2) в основном горизонтально
+    mostly_horizontal = (y_range < 0.60 * x_range + 0.02)
+
+    # 3) направление по X должно быть устойчивым (а не дрожание туда-сюда)
+    # считаем "сколько шага пошло в нужную сторону" / "весь модуль шага"
+    pos, tot = 0.0, 0.0
+    for (x_prev, _, _), (x_next, _, _) in zip(pts, pts[1:]):
+        step = x_next - x_prev
+        tot += abs(step)
+        if step * dir_sign > 0:
+            pos += abs(step)
+
+    stable_dir = (pos / (tot + 1e-9)) > 0.62
+
+    # 4) траектория не должна быть "сигналом-каракулями": чистый штрих
+    path = 0.0
+    for (x_prev, y_prev, _), (x_next, y_next, _) in zip(pts, pts[1:]):
+        path += math.hypot(x_next - x_prev, y_next - y_prev)
+    net = math.hypot(x1 - x0, y1 - y0)
+    clean = (net / (path + 1e-9)) > 0.55
+
+    return moved_enough and mostly_horizontal and stable_dir and clean
+
 # Сглаживание и вывод
 class LabelSmoother:
     """Храним последние метки и берём устойчивую (по большинству)."""
@@ -1067,6 +1167,10 @@ class GestureDetectorSession:
     ):
         self.model_path = self._resolve_model_path(model_path)
         self.num_hands = num_hands
+        self.cat_traj = deque(maxlen=35)
+        self.cat_cooldown_until = 0  # ms
+        self.cat_miss = 0
+        self.CAT_BLOCK_0_MINPTS = 3 
 
         BaseOptions = mp.tasks.BaseOptions
         HandLandmarker = mp.tasks.vision.HandLandmarker
@@ -1088,6 +1192,9 @@ class GestureDetectorSession:
         self.d_traj = deque(maxlen=120)
         self.yo_traj = deque(maxlen=120)
         self.z_traj = deque(maxlen=220)
+        cat_traj = deque(maxlen=35)
+        cat_cooldown_until = 0  # ms
+        cat_miss = 0
 
         self.smoother = LabelSmoother()
 
@@ -1202,8 +1309,33 @@ class GestureDetectorSession:
 
             # если уже нашли 6-9 — дальше не даём коду перезаписать raw
             if raw is None:
-                # 0
-                if is_letter_0(hand_lms):
+                # --- КОШКА (1 рука) ---
+                now_ms = ts_ms  # ВАЖНО: в этом методе timestamp = ts_ms
+
+                # если в кадре не одна рука — кошку не копим
+                if len(hands) != 1:
+                    self.cat_traj.clear()
+                    self.cat_miss = 0
+
+                if now_ms >= self.cat_cooldown_until and len(hands) == 1:
+                    if is_CAT_pose(xyz):
+                        self.cat_miss = 0
+                        update_CAT_traj(self.cat_traj, xyz)
+
+                        if is_gesture_CAT(self.cat_traj):
+                            raw = "КОШКА"
+                            self.cat_traj.clear()
+                            self.cat_miss = 0
+                            self.cat_cooldown_until = now_ms + 600
+                    else:
+                        self.cat_miss += 1
+                        if self.cat_miss >= 4:
+                            self.cat_traj.clear()
+                            self.cat_miss = 0
+
+                # --- 0 (ТОЛЬКО ЕСЛИ КОШКА НЕ "В ПРОЦЕССЕ") ---
+                cat_in_progress = (len(self.cat_traj) >= self.CAT_BLOCK_0_MINPTS)
+                if raw is None and (not cat_in_progress) and is_letter_0(hand_lms):
                     raw = "0"
 
                 # --- ДИНАМИЧЕСКАЯ "Д" ---
@@ -1257,6 +1389,8 @@ class GestureDetectorSession:
             self.d_traj.clear()
             self.yo_traj.clear()
             self.z_traj.clear()
+            self.cat_traj.clear()
+            self.cat_miss = 0   
 
         if raw is None and xyz is not None and hand_lms is not None:
             fingers = get_fingers_state(xyz)
